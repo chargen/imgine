@@ -1,6 +1,7 @@
 
 #include "ImgineConfig.h"
 
+#include "img_core.hpp"
 #include "util_term.hpp"
 
 #include <boost/program_options.hpp>
@@ -12,6 +13,8 @@ extern "C" {
 }
 
 #include <iostream>
+
+using namespace img_core;
 
 using boost::escaped_list_separator;
 using boost::tokenizer;
@@ -30,6 +33,10 @@ char *prompt_string(EditLine *e)
 
 int main(int argc, char *argv[])
 {
+    // Instantiate the context.
+
+    ImgineContext &imgine = ImgineContext::singleton();
+
     // Handle program options.
 
     int verbosity = 0;
@@ -175,15 +182,9 @@ int main(int argc, char *argv[])
                     // Quit the program.
                     is_console_reading = false;
 
-                } else if (command == ":load") {
-                    // Load an image.
-                    // TODO
-
                 } else {
-                    // TODO
-                    for (const auto &token : tokens) {
-                        cout << token << endl;
-                    }
+                    // Execute the command.
+                    imgine.execute(command, tokens);
                 }
             }
         }
