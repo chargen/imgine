@@ -11,14 +11,14 @@ extern "C" {
 
 #include <iostream>
 
-using boost::char_separator;
+using boost::escaped_list_separator;
 using boost::tokenizer;
 
 using std::cerr;
 using std::cout;
 using std::endl;
-using std::vector;
 using std::string;
+using std::vector;
 
 char *prompt_string(EditLine *e) {
     return (char *)"> ";
@@ -149,25 +149,38 @@ int main(int argc, char *argv[])
             history(console_history, &ev, H_ENTER, line); // add to history
 
             string text(line);
-            tokenizer<char_separator<char> > tokens(text);
-            tokenizer<char_separator<char> >::iterator token = tokens.begin();
+            vector<string> tokens;
+            try { // shell-like tokenization
+                escaped_list_separator<char> sep("\\", " \t\r\n", "\"'");
+                tokenizer<escaped_list_separator<char> > tok(text, sep);
+                for (tokenizer<escaped_list_separator<char> >::iterator
+                         i = tok.begin(); i != tok.end(); i++) {
+                    if (*i != "") { // keep non-empty token
+                        tokens.push_back(*i);
+                    }
+                }
+            } catch (std::exception &e) {
+                cerr << e.what() << endl;
+                continue; // read next input line
+            }
 
-            if (*token == ":") { // special commands
-                token++;
+            if (tokens.size()) {
+                string command = tokens.at(0);
 
-                if (*token == "quit" || *token == "q") {
+                if (command == ":quit" || command == ":q") {
                     // Quit the program.
                     is_console_reading = false;
 
+                } else if (command == ":load") {
+                    // Load an image.
+                    // TODO
+
                 } else {
                     // TODO
-                    for (; token != tokens.end(); token++)
-                        cout << *token << endl;
+                    for (const auto &token : tokens) {
+                        cout << token << endl;
+                    }
                 }
-            } else { // image commands
-                // TODO
-                for (; token != tokens.end(); token++)
-                    cout << *token << endl;
             }
         }
     }
