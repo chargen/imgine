@@ -1,12 +1,14 @@
 
 #include "ImgineConfig.h"
 
+#include "util_term.hpp"
+
 #include <boost/program_options.hpp>
 #include <boost/tokenizer.hpp>
 
 extern "C" {
-#include "editline/readline.h"
-#include "histedit.h"
+#include <editline/readline.h>
+#include <histedit.h>
 }
 
 #include <iostream>
@@ -17,10 +19,12 @@ using boost::tokenizer;
 using std::cerr;
 using std::cout;
 using std::endl;
+using std::exception;
 using std::string;
 using std::vector;
 
-char *prompt_string(EditLine *e) {
+char *prompt_string(EditLine *e)
+{
     return (char *)"> ";
 }
 
@@ -77,7 +81,7 @@ int main(int argc, char *argv[])
         po::store(po::command_line_parser(argc, argv).
                   options(cmdline_options).positional(p).run(), vm);
         po::notify(vm);
-    } catch (std::exception &e) {
+    } catch (exception &e) {
         cerr << e.what() << endl;
         return EXIT_FAILURE;
     }
@@ -159,7 +163,7 @@ int main(int argc, char *argv[])
                         tokens.push_back(*i);
                     }
                 }
-            } catch (std::exception &e) {
+            } catch (exception &e) {
                 cerr << e.what() << endl;
                 continue; // read next input line
             }
