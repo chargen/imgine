@@ -23,7 +23,5 @@ message (STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 find_package (Boost 1.55 REQUIRED COMPONENTS
   program_options)
 
-link_libraries (edit)
-
 add_executable (imgine main.cpp)
-target_link_libraries (imgine ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries (imgine ${OpenCV_LIBS} ${Boost_LIBRARIES} edit)
