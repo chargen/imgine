@@ -76,6 +76,7 @@ public:
     void execute_delete(std::vector<std::string>);
     void execute_rename(std::vector<std::string>);
     void execute_properties(std::vector<std::string>);
+    void execute_dump(std::vector<std::string>);
 
     void new_canvas(int, int, int);
     void new_canvas();

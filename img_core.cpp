@@ -178,6 +178,9 @@ void ImgineContext::execute(vector<string> params)
     } else if (cmd == ":properties" || cmd == ":prop" || cmd == ":p") {
         execute_properties(params);
 
+    } else if (cmd == ":dump") {
+        execute_dump(params);
+
     } else {
         // TODO: more commands
         err("Unknown command.\n");
@@ -326,6 +329,18 @@ void ImgineContext::execute_properties(vector<string> params)
         int depth = get<1>(IMG_CV_TYPES.at(active_canvas->cv_type));
         cout << "  Canvas type:\t" << channels << " channels x "
              << depth << " bits / px" << endl;
+
+    } else {
+        err("No active canvas.\n");
+    }
+}
+
+/** Dump (Canvas):
+ */
+void ImgineContext::execute_dump(vector<string> params)
+{
+    if (active_canvas) {
+        cout << *(active_canvas->current->mat) << endl;
 
     } else {
         err("No active canvas.\n");
