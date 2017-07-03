@@ -12,8 +12,6 @@ extern "C" {
 #include <histedit.h>
 }
 
-#include <iostream>
-
 using namespace img_core;
 
 using boost::escaped_list_separator;
@@ -26,20 +24,18 @@ using std::exception;
 using std::string;
 using std::vector;
 
+/** Default EditLine prompt string.
+ */
 char *prompt_string(EditLine *e)
 {
     return (char *)"> ";
 }
 
+/** Main function.
+ */
 int main(int argc, char *argv[])
 {
-    // Instantiate the context.
-
-    ImgineContext &imgine = ImgineContext::singleton();
-
     // Handle program options.
-
-    int verbosity = 0;
 
     namespace po = boost::program_options;
 
@@ -50,18 +46,18 @@ int main(int argc, char *argv[])
         ("help,h", "print help message and exit")
         ;
 
-    // TODO: Configuration
-    po::options_description config("Configuration");
+    // TODO: Configurable options
+    po::options_description config("Configurable");
     config.add_options()
+        ("verbose,v", po::value<int>()->implicit_value(1),
+         "enable verbosity (optionally specify level)")
+        ("debug,d",
+         "enable debugging")
         ("optimization", po::value<int>()->default_value(10),
          "optimization level")
         ("include-path,I",
          po::value< vector<string> >()->composing(),
          "include path")
-        ("verbose,v", po::value<int>(&verbosity)->implicit_value(1),
-         "enable verbosity (optionally specify level)")
-        ("debug,d",
-         "enable debugging")
         ;
 
     // TODO: Hidden options
@@ -71,18 +67,19 @@ int main(int argc, char *argv[])
          "input file")
         ;
 
-    po::options_description cmdline_options("Available options");
+    po::options_description cmdline_options("Command-line options");
     cmdline_options.add(generic).add(config).add(hidden);
 
-    po::options_description config_file_options("Configurable options");
+    po::options_description config_file_options("Configuration file options");
     config_file_options.add(config).add(hidden);
 
     po::options_description visible_options("Options");
     visible_options.add(generic).add(config);
 
-    po::positional_options_description p;
+    po::positional_options_description p; // positional options
     p.add("input-file", -1);
 
+    // Parse argv.
     po::variables_map vm;
     try {
         po::store(po::command_line_parser(argc, argv).
@@ -99,9 +96,17 @@ int main(int argc, char *argv[])
     }
 
     if (vm.count("help")) {
-        cout << "Usage: imgine [options] [files]" << endl;
+        cout << "Usage: imgine [OPTIONS] [FILES]" << endl << endl;
         cout << visible_options << endl;
         return EXIT_SUCCESS;
+    }
+
+    if (vm.count("verbose")) {
+        //cout << "verbosity level: " << vm["verbose"].as<int>() << endl;
+    }
+
+    if (vm.count("debug")) {
+        //cout << "debugging enabled" << endl;
     }
 
     if (vm.count("optimization")) {
@@ -109,25 +114,27 @@ int main(int argc, char *argv[])
     }
 
     if (vm.count("include-path")) {
-        vector<string> values = vm["include-path"].as< vector<string> >();
-        for (const auto &value : values) {
-            cout << "include path: " << value << endl;
-        }
+        //vector<string> values = vm["include-path"].as< vector<string> >();
+        //for (const auto &value : values) {
+        //    cout << "include path: " << value << endl;
+        //}
     }
 
     if (vm.count("input-file")) {
-        vector<string> values = vm["input-file"].as< vector<string> >();
-        for (const auto &value : values) {
-            cout << "input file: " << value << endl;
-        }
+        //vector<string> values = vm["input-file"].as< vector<string> >();
+        //for (const auto &value : values) {
+        //    cout << "input file: " << value << endl;
+        //}
     }
+
+    // Instantiate the context and initialize its config.
+
+    ImgineContext &imgine = ImgineContext::singleton();
+
+    imgine.config.is_console_ansi = util_term::check_ansi();
 
     if (vm.count("verbose")) {
-        cout << "verbosity level: " << vm["verbose"].as<int>() << endl;
-    }
-
-    if (vm.count("debug")) {
-        cout << "debugging enabled" << endl;
+        imgine.config.verbosity = vm["verbose"].as<int>();
     }
 
     // Initialize EditLine.
@@ -175,7 +182,7 @@ int main(int argc, char *argv[])
                 continue; // read next input line
             }
 
-            if (tokens.size()) {
+            if (!tokens.empty()) {
                 string command = tokens.at(0);
 
                 if (command == ":quit" || command == ":q") {
@@ -184,7 +191,7 @@ int main(int argc, char *argv[])
 
                 } else {
                     // Execute the command.
-                    imgine.execute(command, tokens);
+                    imgine.execute(tokens);
                 }
             }
         }
