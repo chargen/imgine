@@ -169,8 +169,11 @@ void ImgineContext::execute(vector<string> params)
     } else if (cmd == ":switch_to" || cmd == ":to") {
         execute_switch_to(params);
 
-    } else if (cmd == ":new_canvas" || cmd == ":new" || cmd == ":n") {
-        execute_new_canvas(params);
+    } else if (cmd == ":new" || cmd == ":n") {
+        execute_new(params);
+
+    } else if (cmd == ":delete" || cmd == ":del") {
+        execute_delete(params);
 
     } else if (cmd == ":properties" || cmd == ":prop" || cmd == ":p") {
         execute_properties(params);
@@ -197,8 +200,8 @@ void ImgineContext::execute_list(vector<string> params)
 
         if (scmd == "canvases" || scmd == "c") {
             for (const auto &canvas : canvases) {
-                cout << (active_canvas->id == canvas->id ? "* " : "  ")
-                     << canvas->name << "\t";
+                cout << (active_canvas && active_canvas->id == canvas->id ?
+                         "* " : "  ") << canvas->name << "\t";
                 cout << "[" << canvas->cols << " x " << canvas->rows << "] ";
                 int channels = get<0>(IMG_CV_TYPES.at(canvas->cv_type));
                 int depth = get<1>(IMG_CV_TYPES.at(canvas->cv_type));
@@ -213,21 +216,7 @@ void ImgineContext::execute_list(vector<string> params)
     }
 }
 
-/** Rename:
- */
-void ImgineContext::execute_rename(vector<string> params)
-{
-    if (params.size() == 2) {
-        string canvas_name = params.at(1);
-
-        active_canvas->name = canvas_name;
-        cout << "  Canvas name:\t" << canvas_name << endl;
-    } else {
-        err("Incorrect number of parameters.\n");
-    }
-}
-
-/** Switch To:
+/** Switch To (Canvas):
  */
 void ImgineContext::execute_switch_to(vector<string> params)
 {
@@ -236,7 +225,7 @@ void ImgineContext::execute_switch_to(vector<string> params)
 
         for (auto &canvas : canvases) {
             if (canvas->name == canvas_name) {
-                this->active_canvas = canvas;
+                active_canvas = canvas;
                 cout << "  Canvas name:\t" << canvas_name << endl;
             }
         }
@@ -245,9 +234,9 @@ void ImgineContext::execute_switch_to(vector<string> params)
     }
 }
 
-/** New Canvas:
+/** New (Canvas):
  */
-void ImgineContext::execute_new_canvas(vector<string> params)
+void ImgineContext::execute_new(vector<string> params)
 {
     int cols = 0, rows = 0;
     int channels = 1, cv_type = CV_8UC1;
@@ -285,7 +274,47 @@ void ImgineContext::execute_new_canvas(vector<string> params)
     }
 }
 
-/** (Image) Properties:
+/** Delete (Canvas):
+ */
+void ImgineContext::execute_delete(vector<string> params)
+{
+    if (params.size() == 2) {
+        string canvas_name = params.at(1);
+
+        for (auto &canvas : canvases) {
+            if (canvas->name == canvas_name) {
+                if (active_canvas == canvas)
+                    active_canvas = nullptr;
+                canvases.remove(canvas);
+                delete canvas;
+                return;
+            }
+        }
+        err("Canvas not found.\n");
+    } else {
+        err("Incorrect number of parameters.\n");
+    }
+}
+
+/** Rename (Canvas):
+ */
+void ImgineContext::execute_rename(vector<string> params)
+{
+    if (params.size() == 2) {
+        string canvas_name = params.at(1);
+
+        if (active_canvas) {
+            active_canvas->name = canvas_name;
+            cout << "  Canvas name:\t" << canvas_name << endl;
+        } else {
+            err("No active canvas.\n");
+        }
+    } else {
+        err("Incorrect number of parameters.\n");
+    }
+}
+
+/** (Canvas) Properties:
  */
 void ImgineContext::execute_properties(vector<string> params)
 {

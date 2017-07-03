@@ -71,9 +71,10 @@ public:
 
     void execute_status(std::vector<std::string>);
     void execute_list(std::vector<std::string>);
-    void execute_rename(std::vector<std::string>);
     void execute_switch_to(std::vector<std::string>);
-    void execute_new_canvas(std::vector<std::string>);
+    void execute_new(std::vector<std::string>);
+    void execute_delete(std::vector<std::string>);
+    void execute_rename(std::vector<std::string>);
     void execute_properties(std::vector<std::string>);
 
     void new_canvas(int, int, int);
