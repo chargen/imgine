@@ -77,15 +77,17 @@ public:
     void execute_rename(std::vector<std::string>);
     void execute_properties(std::vector<std::string>);
     void execute_dump(std::vector<std::string>);
-
-    void new_canvas(int, int, int);
-    void new_canvas();
+    void execute_import(std::vector<std::string>);
+    void execute_export(std::vector<std::string>);
 
 private:
     // Never implement these!
     ImgineContext() {}
     ImgineContext(ImgineContext const&) = delete;
     ImgineContext& operator=(ImgineContext const&) = delete;
+
+    void new_canvas(int, int, int);
+    void new_canvas();
 
 };
 

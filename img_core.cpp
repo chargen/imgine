@@ -2,6 +2,8 @@
 #include "img_core.hpp"
 #include "util_term.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/lexical_cast.hpp>
 #include <opencv2/opencv.hpp>
 
 #include <cstdarg>
@@ -25,7 +27,7 @@ namespace img_core {
 CanvasState::CanvasState(int rows, int cols, int cv_type)
 {
     // TODO: id
-    this->mat = new Mat(rows, cols, cv_type);
+    this->mat = new Mat(rows, cols, cv_type, Scalar::all(0));
 }
 
 /** Constructor of CanvasState.
@@ -163,9 +165,6 @@ void ImgineContext::execute(vector<string> params)
     } else if (cmd == ":list" || cmd == ":l") {
         execute_list(params);
 
-    } else if (cmd == ":rename" || cmd == ":ren") {
-        execute_rename(params);
-
     } else if (cmd == ":switch_to" || cmd == ":to") {
         execute_switch_to(params);
 
@@ -175,11 +174,20 @@ void ImgineContext::execute(vector<string> params)
     } else if (cmd == ":delete" || cmd == ":del") {
         execute_delete(params);
 
+    } else if (cmd == ":rename" || cmd == ":ren") {
+        execute_rename(params);
+
     } else if (cmd == ":properties" || cmd == ":prop" || cmd == ":p") {
         execute_properties(params);
 
     } else if (cmd == ":dump") {
         execute_dump(params);
+
+    } else if (cmd == ":import" || cmd == ":im") {
+        execute_import(params);
+
+    } else if (cmd == ":export" || cmd == ":ex") {
+        execute_export(params);
 
     } else {
         // TODO: more commands
@@ -215,11 +223,12 @@ void ImgineContext::execute_list(vector<string> params)
             err("Unknown subcommand.\n");
         }
     } else {
-        err("Incorrect number of parameters.\n");
+        warn("? :list SUBCOMMAND\n");
     }
 }
 
-/** Switch To (Canvas):
+/** Switch To:
+ *  Switches to a canvas (sets it to active).
  */
 void ImgineContext::execute_switch_to(vector<string> params)
 {
@@ -233,16 +242,17 @@ void ImgineContext::execute_switch_to(vector<string> params)
             }
         }
     } else {
-        err("Incorrect number of parameters.\n");
+        warn("? :switch_to CANVAS_NAME\n");
     }
 }
 
-/** New (Canvas):
+/** New:
+ *  Creates a new canvas.
  */
 void ImgineContext::execute_new(vector<string> params)
 {
-    int cols = 0, rows = 0;
-    int channels = 1, cv_type = CV_8UC1;
+    int cols = 0, rows = 0, channels = 3;
+    int cv_type = CV_8UC(channels);
 
     if (params.size() == 1) {
         new_canvas();
@@ -252,7 +262,7 @@ void ImgineContext::execute_new(vector<string> params)
         if (cols)
             new_canvas(cols, cols, cv_type);
         else
-            err("Incorrect parameter(s).\n");
+            err("Invalid parameter(s).\n");
 
     } else if (params.size() == 3) {
         stringstream(params.at(1)) >> cols;
@@ -260,7 +270,7 @@ void ImgineContext::execute_new(vector<string> params)
         if (cols && rows)
             new_canvas(rows, cols, cv_type);
         else
-            err("Incorrect parameter(s).\n");
+            err("Invalid parameter(s).\n");
 
     } else if (params.size() == 4) {
         stringstream(params.at(1)) >> cols;
@@ -270,14 +280,15 @@ void ImgineContext::execute_new(vector<string> params)
             cv_type = CV_8UC(channels);
             new_canvas(rows, cols, cv_type);
         } else {
-            err("Incorrect parameter(s).\n");
+            err("Invalid parameter(s).\n");
         }
     } else {
         err("Incorrect number of parameters.\n");
     }
 }
 
-/** Delete (Canvas):
+/** Delete:
+ *  Deletes a canvas.
  */
 void ImgineContext::execute_delete(vector<string> params)
 {
@@ -295,17 +306,19 @@ void ImgineContext::execute_delete(vector<string> params)
         }
         err("Canvas not found.\n");
     } else {
-        err("Incorrect number of parameters.\n");
+        warn("? :delete CANVAS_NAME\n");
     }
 }
 
-/** Rename (Canvas):
+/** Rename:
+ *  Renames the active canvas.
  */
 void ImgineContext::execute_rename(vector<string> params)
 {
     if (params.size() == 2) {
         string canvas_name = params.at(1);
 
+        // TODO: disallow duplicate names
         if (active_canvas) {
             active_canvas->name = canvas_name;
             cout << "  Canvas name:\t" << canvas_name << endl;
@@ -313,11 +326,12 @@ void ImgineContext::execute_rename(vector<string> params)
             err("No active canvas.\n");
         }
     } else {
-        err("Incorrect number of parameters.\n");
+        warn("? :rename CANVAS_NAME\n");
     }
 }
 
-/** (Canvas) Properties:
+/** Properties:
+ *  Prints the basic information of the active canvas.
  */
 void ImgineContext::execute_properties(vector<string> params)
 {
@@ -327,23 +341,123 @@ void ImgineContext::execute_properties(vector<string> params)
              << active_canvas->rows << "]" << endl;
         int channels = get<0>(IMG_CV_TYPES.at(active_canvas->cv_type));
         int depth = get<1>(IMG_CV_TYPES.at(active_canvas->cv_type));
-        cout << "  Canvas type:\t" << channels << " channels x "
-             << depth << " bits / px" << endl;
+        cout << "  Channels:\t" << channels << endl;
+        cout << "  Depth:\t" << depth << " bits" << endl;
 
     } else {
         err("No active canvas.\n");
     }
 }
 
-/** Dump (Canvas):
+/** Dump:
+ *  Prints the actual matrix of the active canvas.
  */
 void ImgineContext::execute_dump(vector<string> params)
 {
     if (active_canvas) {
         cout << *(active_canvas->current->mat) << endl;
-
     } else {
         err("No active canvas.\n");
+    }
+}
+
+/** Import:
+ *  Imports an image from a file into a new canvas.
+ */
+void ImgineContext::execute_import(vector<string> params)
+{
+    if (params.size() >= 2) {
+        string file_name = params.at(1);
+        int cv_flag = -1; // default: load image as is, incl. alpha channel
+        if (params.size() >= 3) {
+            int channels = 0;
+            stringstream(params.at(2)) >> channels;
+            if (channels == 4) {
+                cv_flag = -1; // <0 return the loaded image as is, incl. alpha
+            } else if (channels == 3) {
+                cv_flag = 1; // >0 return a 3-channel color image
+            } else if (channels == 1) {
+                cv_flag = 0; // =0 return a grayscale image
+            } else {
+                err("Invalid parameter(s).\n");
+                return;
+            }
+        }
+
+        new_canvas();
+        *active_canvas->current->mat = imread(file_name, cv_flag);
+        if (active_canvas->current->mat->data) {
+            // TODO: rename canvas
+            active_canvas->rows = active_canvas->current->mat->rows;
+            active_canvas->cols = active_canvas->current->mat->cols;
+            active_canvas->cv_type = active_canvas->current->mat->type();
+            cout << "  Imported file:\t" << file_name << endl;
+
+        } else {
+            canvases.remove(active_canvas);
+            delete active_canvas;
+            active_canvas = nullptr;
+            err("Import failed.\n");
+        }
+    } else {
+        warn("? :import FILE_NAME [CHANNELS]\n");
+    }
+}
+
+/** Export:
+ *  Exports the image from the active canvas to a file.
+ */
+void ImgineContext::execute_export(vector<string> params)
+{
+    if (params.size() >= 2) {
+        string file_name = params.at(1);
+        vector<int> cv_params;
+        if (params.size() >= 3) {
+            int param_key, param_val;
+            const char *temp = params.at(2).c_str();
+            try {
+                if (boost::starts_with(temp, "JPEG_QUALITY=")) {
+                    // 0 to 100 (default: 95)
+                    param_key = CV_IMWRITE_JPEG_QUALITY;
+                    param_val = boost::lexical_cast<int>(temp + 13);
+                } else if (boost::starts_with(temp, "WEBP_QUALITY=")) {
+                    // 1 to 100 (default: 100)
+                    param_key = CV_IMWRITE_WEBP_QUALITY;
+                    param_val = boost::lexical_cast<int>(temp + 13);
+                } else if (boost::starts_with(temp, "PNG_COMPRESSION=")) {
+                    // 0 to 9 (default: 3)
+                    param_key = CV_IMWRITE_PNG_COMPRESSION;
+                    param_val = boost::lexical_cast<int>(temp + 16);
+                } else if (boost::starts_with(temp, "PXM_BINARY=")) {
+                    // 0 or 1 (default: 1)
+                    param_key = CV_IMWRITE_PXM_BINARY;
+                    param_val = boost::lexical_cast<int>(temp + 11);
+                } else {
+                    err("Invalid subparameter(s).\n");
+                    return;
+                }
+                cv_params.push_back(param_key);
+                cv_params.push_back(param_val);
+            } catch (boost::bad_lexical_cast) {
+                err("Invalid subparameter(s).\n");
+                return;
+            }
+        }
+
+        if (active_canvas) {
+            try {
+                imwrite(file_name, *(active_canvas->current->mat), cv_params);
+                cout << "  Exported file:\t" << file_name << endl;
+            } catch (exception &e) {
+                err("Export failed:\n%s", e.what());
+            }
+        } else {
+            err("No active canvas.\n");
+        }
+    } else {
+        warn("? :export FILE_NAME "
+             "[JPEG_QUALITY=<int> | WEBP_QUALITY=<int> |"
+             " PNG_COMPRESSION=<int> | PXM_BINARY=<int>]\n");
     }
 }
 
