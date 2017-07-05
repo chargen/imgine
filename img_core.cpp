@@ -7,6 +7,7 @@
 #include <opencv2/opencv.hpp>
 
 #include <cstdarg>
+#include <thread>
 
 using namespace cv;
 
@@ -18,6 +19,7 @@ using std::get;
 using std::list;
 using std::string;
 using std::stringstream;
+using std::thread;
 using std::vector;
 
 namespace img_core {
@@ -92,6 +94,10 @@ ImgineContext& ImgineContext::singleton()
  */
 ImgineContext::~ImgineContext()
 {
+    destroyAllWindows();
+    for (auto &thread : threads) {
+        thread.join();
+    }
     for (auto &canvas : canvases) {
         delete canvas;
     }
@@ -188,6 +194,9 @@ void ImgineContext::execute(vector<string> params)
 
     } else if (cmd == ":export" || cmd == ":ex") {
         execute_export(params);
+
+    } else if (cmd == ":show") {
+        execute_show(params);
 
     } else {
         // TODO: more commands
@@ -458,6 +467,24 @@ void ImgineContext::execute_export(vector<string> params)
         warn("? :export FILE_NAME "
              "[JPEG_QUALITY=<int> | WEBP_QUALITY=<int> |"
              " PNG_COMPRESSION=<int> | PXM_BINARY=<int>]\n");
+    }
+}
+
+/** Show:
+ *  Open a HighGUI window displaying the image of the active canvas.
+ */
+void ImgineContext::execute_show(vector<string> params)
+{
+    if (active_canvas) {
+        // FIXME: two HighGUI windows can't coexist -- why?
+        destroyAllWindows();
+        // FIXME: resizable window using CV_WINDOW_NORMAL
+        namedWindow(active_canvas->name, WINDOW_AUTOSIZE);
+        imshow(active_canvas->name, *(active_canvas->current->mat));
+        threads.push_back(thread(waitKey, 0));
+
+    } else {
+        err("No active canvas.\n");
     }
 }
 

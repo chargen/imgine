@@ -4,9 +4,16 @@
 
 #include <opencv2/opencv.hpp>
 
+#include <thread>
+
+using std::list;
+using std::string;
+using std::thread;
+using std::vector;
+
 namespace img_core {
 
-const std::unordered_map<int, std::tuple<int, int, std::string> >
+const std::unordered_map<int, std::tuple<int, int, string> >
 IMG_CV_TYPES = {
     {CV_8UC1, {1, 8, "uchar"}},
     {CV_8UC2, {2, 8, "uchar"}},
@@ -24,7 +31,7 @@ public:
     CanvasState();
     ~CanvasState();
 
-    std::string id;
+    string id;
     cv::Mat *mat;
 
 };
@@ -35,14 +42,14 @@ public:
 class Canvas {
 
 public:
-    Canvas(std::string, int, int, int);
-    Canvas(std::string);
+    Canvas(string, int, int, int);
+    Canvas(string);
     ~Canvas();
 
-    std::string id, name;
+    string id, name;
     int rows, cols, cv_type;
     CanvasState *current = nullptr;
-    std::list<CanvasState *> history = {};
+    list<CanvasState *> history = {};
 
 };
 
@@ -60,31 +67,34 @@ public:
     } config;
     int canvas_counter = 0;
     Canvas *active_canvas = nullptr;
-    std::list<Canvas *> canvases = {};
+    list<Canvas *> canvases = {};
 
     void debug(const char *, ...);
     void warn(const char *, ...);
     void err(const char *, ...);
     void wtf(const char *, ...);
 
-    void execute(std::vector<std::string>);
+    void execute(vector<string>);
 
-    void execute_status(std::vector<std::string>);
-    void execute_list(std::vector<std::string>);
-    void execute_switch_to(std::vector<std::string>);
-    void execute_new(std::vector<std::string>);
-    void execute_delete(std::vector<std::string>);
-    void execute_rename(std::vector<std::string>);
-    void execute_properties(std::vector<std::string>);
-    void execute_dump(std::vector<std::string>);
-    void execute_import(std::vector<std::string>);
-    void execute_export(std::vector<std::string>);
+    void execute_status(vector<string>);
+    void execute_list(vector<string>);
+    void execute_switch_to(vector<string>);
+    void execute_new(vector<string>);
+    void execute_delete(vector<string>);
+    void execute_rename(vector<string>);
+    void execute_properties(vector<string>);
+    void execute_dump(vector<string>);
+    void execute_import(vector<string>);
+    void execute_export(vector<string>);
+    void execute_show(vector<string>);
 
 private:
     // Never implement these!
     ImgineContext() {}
     ImgineContext(ImgineContext const&) = delete;
     ImgineContext& operator=(ImgineContext const&) = delete;
+
+    list<thread> threads = {};
 
     void new_canvas(int, int, int);
     void new_canvas();
