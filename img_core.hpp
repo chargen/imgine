@@ -63,6 +63,8 @@ public:
 
     struct {
         bool is_console_ansi = false;
+        bool is_console_truecolor = false;
+        int columns = 80;
         int verbosity = 0;
     } config;
     int canvas_counter = 0;
@@ -87,6 +89,7 @@ public:
     void execute_import(vector<string>);
     void execute_export(vector<string>);
     void execute_show(vector<string>);
+    void execute_inspect(vector<string>);
 
 private:
     // Never implement these!
@@ -95,6 +98,8 @@ private:
     ImgineContext& operator=(ImgineContext const&) = delete;
 
     list<thread> threads = {};
+
+    static void onMouseInspection(int, int, int, int, void *);
 
     void new_canvas(int, int, int);
     void new_canvas();

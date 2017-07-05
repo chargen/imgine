@@ -1,5 +1,6 @@
 
 #include "img_core.hpp"
+#include "util_color.hpp"
 #include "util_term.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -10,16 +11,21 @@
 #include <thread>
 
 using namespace cv;
+using namespace util_color;
+using namespace util_term;
 
 using std::cerr;
 using std::cout;
 using std::endl;
 using std::exception;
+using std::flush;
 using std::get;
 using std::list;
+using std::setprecision;
 using std::string;
 using std::stringstream;
 using std::thread;
+using std::to_string;
 using std::vector;
 
 namespace img_core {
@@ -112,9 +118,9 @@ void ImgineContext::debug(const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
     if (config.is_console_ansi)
-        util_term::log::vfinfo(fmt, args);
+        log::vfinfo(fmt, args);
     else
-        util_term::log::vfecho(fmt, args);
+        log::vfecho(fmt, args);
     va_end(args);
 }
 
@@ -125,9 +131,9 @@ void ImgineContext::warn(const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
     if (config.is_console_ansi)
-        util_term::log::vfwarn(fmt, args);
+        log::vfwarn(fmt, args);
     else
-        util_term::log::vfecho(fmt, args);
+        log::vfecho(fmt, args);
     va_end(args);
 }
 
@@ -138,9 +144,9 @@ void ImgineContext::err(const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
     if (config.is_console_ansi)
-        util_term::log::vferr(fmt, args);
+        log::vferr(fmt, args);
     else
-        util_term::log::vfecho(fmt, args);
+        log::vfecho(fmt, args);
     va_end(args);
 }
 
@@ -151,9 +157,9 @@ void ImgineContext::wtf(const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
     if (config.is_console_ansi)
-        util_term::log::vferr(fmt, args);
+        log::vferr(fmt, args);
     else
-        util_term::log::vfecho(fmt, args);
+        log::vfecho(fmt, args);
     va_end(args);
 
     exit(EXIT_FAILURE);
@@ -197,6 +203,9 @@ void ImgineContext::execute(vector<string> params)
 
     } else if (cmd == ":show") {
         execute_show(params);
+
+    } else if (cmd == ":inspect" || cmd == ":i") {
+        execute_inspect(params);
 
     } else {
         // TODO: more commands
@@ -351,7 +360,7 @@ void ImgineContext::execute_properties(vector<string> params)
         int channels = get<0>(IMG_CV_TYPES.at(active_canvas->cv_type));
         int depth = get<1>(IMG_CV_TYPES.at(active_canvas->cv_type));
         cout << "  Channels:\t" << channels << endl;
-        cout << "  Depth:\t" << depth << " bits" << endl;
+        cout << "  Color depth:\t" << depth << " bits" << endl;
 
     } else {
         err("No active canvas.\n");
@@ -488,12 +497,84 @@ void ImgineContext::execute_show(vector<string> params)
     }
 }
 
+/** Inspect:
+ *  Open a HighGUI window displaying the image of the active canvas.
+ *  (Mouse inspection enabled)
+ */
+void ImgineContext::execute_inspect(vector<string> params)
+{
+    if (active_canvas) {
+        // FIXME: two HighGUI windows can't coexist -- why?
+        destroyAllWindows();
+        // FIXME: resizable window using CV_WINDOW_NORMAL
+        namedWindow(active_canvas->name, WINDOW_AUTOSIZE);
+        imshow(active_canvas->name, *(active_canvas->current->mat));
+        setMouseCallback(active_canvas->name, onMouseInspection, this);
+        execute_properties(params);
+        cout << string(5, '\n') << flush;
+        waitKey(0);
+        cout << endl;
+
+    } else {
+        err("No active canvas.\n");
+    }
+}
+
+/** Mouse callback handler for inspection.
+ */
+void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *context)
+{
+    // TODO: EVENT_MOUSEMOVE EVENT_LBUTTONDOWN EVENT_RBUTTONDOWN EVENT_MBUTTONDOWN
+    ImgineContext *image_context = (ImgineContext *)context;
+    Mat *mat = image_context->active_canvas->current->mat;
+
+    cout << CPL(4);
+
+    cout << "  Pixel:\t" << std::dec
+         << "(" << x << ", " << y << ")" << string(6, ' ') << endl;
+
+    unsigned char r, g, b, a = 255;
+    if (mat->type() == CV_8UC1) {
+        Vec<uchar, 1> intensity = mat->at<uchar>(y, x);
+        b = g = r = intensity.val[0];
+
+        cout << "  Value (gray):\t"
+             << intensity << string(12, ' ') << endl;
+
+    } else if (mat->type() == CV_8UC3) {
+        Vec3b intensity = mat->at<Vec3b>(y, x);
+        b = intensity.val[0];
+        g = intensity.val[1];
+        r = intensity.val[2];
+
+        cout << "  Value (BGR):\t"
+             << intensity << string(12, ' ') << endl;
+
+    } else if (mat->type() == CV_8UC4) {
+        Vec4b intensity = mat->at<Vec4b>(y, x);
+        b = intensity.val[0];
+        g = intensity.val[1];
+        r = intensity.val[2];
+        a = intensity.val[3];
+
+        cout << "  Value (BGRA):\t"
+             << intensity << string(12, ' ') << endl;
+
+    }
+    cout << "  RGB hex:\t" << rgb_to_hex(r, g, b) << endl;
+    cout << "  Opacity:\t" << setprecision(2) << alpha_to_opacity(a) << endl;
+
+    cout << sgr_background_rgb(r, g, b,
+                               string(image_context->config.columns, ' '))
+         << flush;
+}
+
 /** Create a new canvas. (given matrix size and type)
  */
 void ImgineContext::new_canvas(int rows, int cols, int cv_type)
 {
     ++canvas_counter;
-    string id = "Canvas_" + std::to_string(canvas_counter);
+    string id = "Canvas_" + to_string(canvas_counter);
     this->active_canvas = new Canvas(id, rows, cols, cv_type);
     this->canvases.push_back(this->active_canvas);
 }
@@ -503,7 +584,7 @@ void ImgineContext::new_canvas(int rows, int cols, int cv_type)
 void ImgineContext::new_canvas()
 {
     ++canvas_counter;
-    string id = "Canvas_" + std::to_string(canvas_counter);
+    string id = "Canvas_" + to_string(canvas_counter);
     this->active_canvas = new Canvas(id);
     this->canvases.push_back(this->active_canvas);
 }

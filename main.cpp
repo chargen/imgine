@@ -132,7 +132,8 @@ int main(int argc, char *argv[])
     ImgineContext &imgine = ImgineContext::singleton();
 
     imgine.config.is_console_ansi = util_term::check_ansi();
-
+    imgine.config.is_console_truecolor = util_term::check_truecolor();
+    imgine.config.columns = util_term::get_width();
     if (vm.count("verbose")) {
         imgine.config.verbosity = vm["verbose"].as<int>();
     }
