@@ -217,6 +217,9 @@ void ImgineContext::execute(vector<string> params)
     } else if (cmd == ":select" || cmd == ":sel") {
         execute_select(params);
 
+    } else if (cmd == ":statistics" || cmd == ":stat" || cmd == ":st") {
+        execute_statistics(params);
+
     } else {
         // TODO: more commands
         err("Unknown command.\n");
@@ -372,7 +375,7 @@ void ImgineContext::execute_properties(vector<string> params)
         cout << "  Channels:\t" << channels << endl;
         cout << "  Color depth:\t" << depth << " bits" << endl;
 
-        cout << "  Selected ROI:\t" << active_canvas->current->roi << endl;
+        cout << "  ROI:\t\t" << active_canvas->current->roi << endl;
 
     } else {
         err("No active canvas.\n");
@@ -597,7 +600,27 @@ void ImgineContext::execute_select(vector<string> params)
             selectROI(active_canvas->name, *(active_canvas->current->mat),
                       showCrosshair, fromCenter);
         destroyWindow(active_canvas->name);
-        cout << "  Selected ROI:\t" << active_canvas->current->roi << endl;
+        cout << "  ROI:\t\t" << active_canvas->current->roi << endl;
+        // TODO: ROI out of bounds
+
+    } else {
+        err("No active canvas.\n");
+    }
+}
+
+/** Statistics:
+ */
+void ImgineContext::execute_statistics(vector<string> params)
+{
+    if (active_canvas) {
+        Mat roi(*(active_canvas->current->mat), active_canvas->current->roi);
+        cout << "  ROI:\t\t" << active_canvas->current->roi << endl;
+
+        Scalar roi_mean, roi_stddev;
+        meanStdDev(roi, roi_mean, roi_stddev);
+        cout << "  (BGRA)" << endl;
+        cout << "    Mean:\t" << roi_mean << endl;
+        cout << "    Std dev:\t" << roi_stddev << endl;
 
     } else {
         err("No active canvas.\n");

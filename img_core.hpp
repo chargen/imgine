@@ -92,6 +92,7 @@ public:
     void execute_show(vector<string>);
     void execute_inspect(vector<string>);
     void execute_select(vector<string>);
+    void execute_statistics(vector<string>);
 
 private:
     // Never implement these!
