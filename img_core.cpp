@@ -6,6 +6,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
 #include <opencv2/opencv.hpp>
+#include <opencv2/tracking.hpp>
 
 #include <cstdarg>
 #include <thread>
@@ -36,6 +37,7 @@ CanvasState::CanvasState(int rows, int cols, int cv_type)
 {
     // TODO: id
     this->mat = new Mat(rows, cols, cv_type, Scalar::all(0));
+    this->roi = Rect2d(0, 0, cols, rows);
 }
 
 /** Constructor of CanvasState.
@@ -44,6 +46,7 @@ CanvasState::CanvasState()
 {
     // TODO: id
     this->mat = new Mat();
+    this->roi = Rect2d();
 }
 
 /** Destructor of CanvasState.
@@ -206,6 +209,9 @@ void ImgineContext::execute(vector<string> params)
 
     } else if (cmd == ":inspect" || cmd == ":i") {
         execute_inspect(params);
+
+    } else if (cmd == ":select" || cmd == ":sel") {
+        execute_select(params);
 
     } else {
         // TODO: more commands
@@ -513,7 +519,7 @@ void ImgineContext::execute_inspect(vector<string> params)
         execute_properties(params);
         cout << string(5, '\n') << flush;
         waitKey(0);
-        cout << endl;
+        cout << EL(1) << endl;
 
     } else {
         err("No active canvas.\n");
@@ -567,6 +573,25 @@ void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *con
     cout << sgr_background_rgb(r, g, b,
                                string(image_context->config.columns, ' '))
          << flush;
+}
+
+/** Select:
+ *  Open a HighGUI window for selecting ROI in the active canvas.
+ */
+void ImgineContext::execute_select(vector<string> params)
+{
+    if (active_canvas) {
+        bool showCrosshair = false;
+        bool fromCenter = false;
+        active_canvas->current->roi =
+            selectROI(active_canvas->name, *(active_canvas->current->mat),
+                      showCrosshair, fromCenter);
+        destroyWindow(active_canvas->name);
+        cout << "  Selected region:\t" << active_canvas->current->roi << endl;
+
+    } else {
+        err("No active canvas.\n");
+    }
 }
 
 /** Create a new canvas. (given matrix size and type)

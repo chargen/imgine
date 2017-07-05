@@ -33,6 +33,7 @@ public:
 
     string id;
     cv::Mat *mat;
+    cv::Rect2d roi;
 
 };
 
@@ -90,6 +91,7 @@ public:
     void execute_export(vector<string>);
     void execute_show(vector<string>);
     void execute_inspect(vector<string>);
+    void execute_select(vector<string>);
 
 private:
     // Never implement these!
