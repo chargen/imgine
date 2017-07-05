@@ -22,7 +22,6 @@ using std::exception;
 using std::flush;
 using std::get;
 using std::list;
-using std::setprecision;
 using std::string;
 using std::stringstream;
 using std::thread;
@@ -368,6 +367,8 @@ void ImgineContext::execute_properties(vector<string> params)
         cout << "  Channels:\t" << channels << endl;
         cout << "  Color depth:\t" << depth << " bits" << endl;
 
+        cout << "  Selected ROI:\t" << active_canvas->current->roi << endl;
+
     } else {
         err("No active canvas.\n");
     }
@@ -411,10 +412,14 @@ void ImgineContext::execute_import(vector<string> params)
         new_canvas();
         *active_canvas->current->mat = imread(file_name, cv_flag);
         if (active_canvas->current->mat->data) {
+            int rows = active_canvas->current->mat->rows;
+            int cols = active_canvas->current->mat->cols;
+            int cv_type = active_canvas->current->mat->type();
+            active_canvas->current->roi = Rect2d(0, 0, cols, rows);
             // TODO: rename canvas
-            active_canvas->rows = active_canvas->current->mat->rows;
-            active_canvas->cols = active_canvas->current->mat->cols;
-            active_canvas->cv_type = active_canvas->current->mat->type();
+            active_canvas->rows = rows;
+            active_canvas->cols = cols;
+            active_canvas->cv_type = cv_type;
             cout << "  Imported file:\t" << file_name << endl;
 
         } else {
@@ -536,7 +541,7 @@ void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *con
 
     cout << CPL(4);
 
-    cout << "  Pixel:\t" << std::dec
+    cout << "  Pixel:\t"
          << "(" << x << ", " << y << ")" << string(6, ' ') << endl;
 
     unsigned char r, g, b, a = 255;
@@ -568,7 +573,7 @@ void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *con
 
     }
     cout << "  RGB hex:\t" << rgb_to_hex(r, g, b) << endl;
-    cout << "  Opacity:\t" << setprecision(2) << alpha_to_opacity(a) << endl;
+    cout << "  Opacity:\t" << alpha_to_opacity(a) << endl;
 
     cout << sgr_background_rgb(r, g, b,
                                string(image_context->config.columns, ' '))
@@ -587,7 +592,7 @@ void ImgineContext::execute_select(vector<string> params)
             selectROI(active_canvas->name, *(active_canvas->current->mat),
                       showCrosshair, fromCenter);
         destroyWindow(active_canvas->name);
-        cout << "  Selected region:\t" << active_canvas->current->roi << endl;
+        cout << "  Selected ROI:\t" << active_canvas->current->roi << endl;
 
     } else {
         err("No active canvas.\n");
