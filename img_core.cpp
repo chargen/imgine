@@ -197,10 +197,12 @@ void ImgineContext::execute(vector<string> params)
     } else if (cmd == ":dump") {
         execute_dump(params);
 
-    } else if (cmd == ":import" || cmd == ":im") {
+    } else if (cmd == ":import" ||
+               cmd == ":read" || cmd == ":r") {
         execute_import(params);
 
-    } else if (cmd == ":export" || cmd == ":ex") {
+    } else if (cmd == ":export" ||
+               cmd == ":write" || cmd == ":w") {
         execute_export(params);
 
     } else if (cmd == ":show") {
