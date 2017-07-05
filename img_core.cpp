@@ -76,6 +76,9 @@ Canvas::Canvas(string id)
 {
     this->id = id;
     this->name = id;
+    this->rows = 0;
+    this->cols = 0;
+    this->cv_type = CV_8UC1;
     // A new canvas starts with an initial state.
     this->current = new CanvasState();
     this->history.push_back(this->current);
