@@ -25,5 +25,5 @@ find_package (Boost 1.55 REQUIRED COMPONENTS
 
 find_package (Threads)
 
-add_executable (imgine main.cpp img_core.cpp util_term.cpp)
+add_executable (imgine main.cpp img_core.cpp util_color.cpp util_term.cpp)
 target_link_libraries (imgine ${OpenCV_LIBS} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} edit)
