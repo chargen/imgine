@@ -75,6 +75,9 @@
 /** Cursor Previous Line.
  */
 #define CPL(n)                       "\33[" BOOST_PP_STRINGIZE(n) "F"
+/** Erase in Line.
+ */
+#define EL(n)                        "\33[" BOOST_PP_STRINGIZE(n) "K"
 
 using std::string;
 
