@@ -3,6 +3,7 @@
 #define _UTIL_TERM_HPP
 
 #include <cstdarg>
+#include <string>
 
 /** SGR (Select Graphic Rendition) Parameters.
  *  Reference:
@@ -75,11 +76,16 @@
  */
 #define CPL(n)                       "\33[" BOOST_PP_STRINGIZE(n) "F"
 
+using std::string;
+
 namespace util_term {
 
 bool check_ansi();
 bool check_truecolor();
 int get_width();
+
+string sgr_rgb(unsigned char, unsigned char, unsigned char, string);
+string sgr_background_rgb(unsigned char, unsigned char, unsigned char, string);
 
 namespace log {
 

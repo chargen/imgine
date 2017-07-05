@@ -14,7 +14,7 @@ extern "C" {
 
 using std::getenv;
 using std::string;
-using std::stringstream;
+using std::to_string;
 
 namespace util_term {
 
@@ -63,6 +63,24 @@ int get_width()
     }
 #endif
     return columns_default;
+}
+
+/** Apply SGR foreground RGB (true color) code to a string.
+ */
+string sgr_rgb(unsigned char r, unsigned char g, unsigned char b, string s)
+{
+    return "\33[38;2;" +
+        to_string(r) + ";" + to_string(g) + ";" + to_string(b) + "m" +
+        s + SGR_RESET;
+}
+
+/** Apply SGR background RGB (true color) code to a string.
+ */
+string sgr_background_rgb(unsigned char r, unsigned char g, unsigned char b, string s)
+{
+    return "\33[48;2;" +
+        to_string(r) + ";" + to_string(g) + ";" + to_string(b) + "m" +
+        s + SGR_RESET;
 }
 
 namespace log {
