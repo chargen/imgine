@@ -11,18 +11,18 @@ namespace util_color {
 string rgb_to_hex(unsigned char r, unsigned char g, unsigned char b)
 {
     std::stringstream ss;
-    ss << "#" << std::hex
+    ss << "#" << std::hex << std::uppercase
        << std::setw(2) << std::setfill('0') << (int)r
        << std::setw(2) << std::setfill('0') << (int)g
        << std::setw(2) << std::setfill('0') << (int)b;
     return ss.str();
 }
 
-/** Convert alpha value to opacity (a double between 0 and 1).
+/** Convert alpha value to opacity value (between 0 and 1).
  */
-double alpha_to_opacity(unsigned char a)
+float alpha_to_opacity(unsigned char a)
 {
-    return a / 255.;
+    return int(a / 255. * 100) / 100.;
 }
 
 

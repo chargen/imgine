@@ -9,7 +9,7 @@ using std::string;
 namespace util_color {
 
 string rgb_to_hex(unsigned char, unsigned char, unsigned char);
-double alpha_to_opacity(unsigned char);
+float alpha_to_opacity(unsigned char);
 
 
 
