@@ -120,11 +120,12 @@ int main(int argc, char *argv[])
         //}
     }
 
+    list<string> input_files = {};
     if (vm.count("input-file")) {
-        //vector<string> values = vm["input-file"].as< vector<string> >();
-        //for (const auto &value : values) {
-        //    cout << "input file: " << value << endl;
-        //}
+        vector<string> values = vm["input-file"].as< vector<string> >();
+        for (const auto &value : values) {
+            input_files.push_back(string(value));
+        }
     }
 
     // Instantiate the context and initialize its config.
@@ -136,6 +137,10 @@ int main(int argc, char *argv[])
     imgine.config.columns = util_term::get_width();
     if (vm.count("verbose")) {
         imgine.config.verbosity = vm["verbose"].as<int>();
+    }
+
+    for (string &input_file : input_files) {
+        imgine.execute_import({":import", input_file});
     }
 
     // Initialize EditLine.
