@@ -375,7 +375,7 @@ void ImgineContext::execute_properties(vector<string> params)
         int channels = get<0>(IMG_CV_TYPES.at(active_canvas->cv_type));
         int depth = get<1>(IMG_CV_TYPES.at(active_canvas->cv_type));
         cout << "  Channels:\t" << channels << endl;
-        cout << "  Color depth:\t" << depth << " bits" << endl;
+        cout << "  Color depth:\t" << depth << " bpc" << endl;
 
         cout << "  ROI:\t\t" << active_canvas->current->roi << endl;
 
