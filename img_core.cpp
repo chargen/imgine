@@ -556,30 +556,30 @@ void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *con
 
     unsigned char r, g, b, a = 255;
     if (mat->type() == CV_8UC1) {
-        Vec<uchar, 1> intensity = mat->at<uchar>(y, x);
-        b = g = r = intensity.val[0];
+        Vec<uchar, 1> pixel = mat->at<uchar>(y, x);
+        b = g = r = pixel.val[0];
 
         cout << "  Value (gray):\t"
-             << intensity << string(12, ' ') << endl;
+             << pixel << string(12, ' ') << endl;
 
     } else if (mat->type() == CV_8UC3) {
-        Vec3b intensity = mat->at<Vec3b>(y, x);
-        b = intensity.val[0];
-        g = intensity.val[1];
-        r = intensity.val[2];
+        Vec3b pixel = mat->at<Vec3b>(y, x);
+        b = pixel.val[0];
+        g = pixel.val[1];
+        r = pixel.val[2];
 
         cout << "  Value (BGR):\t"
-             << intensity << string(12, ' ') << endl;
+             << pixel << string(12, ' ') << endl;
 
     } else if (mat->type() == CV_8UC4) {
-        Vec4b intensity = mat->at<Vec4b>(y, x);
-        b = intensity.val[0];
-        g = intensity.val[1];
-        r = intensity.val[2];
-        a = intensity.val[3];
+        Vec4b pixel = mat->at<Vec4b>(y, x);
+        b = pixel.val[0];
+        g = pixel.val[1];
+        r = pixel.val[2];
+        a = pixel.val[3];
 
         cout << "  Value (BGRA):\t"
-             << intensity << string(12, ' ') << endl;
+             << pixel << string(12, ' ') << endl;
 
     }
     cout << "  RGB hex:\t" << rgb_to_hex(r, g, b) << endl;
