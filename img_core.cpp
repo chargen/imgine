@@ -113,6 +113,38 @@ ImgineContext::~ImgineContext()
     }
 }
 
+/** Create a new canvas. (given matrix size and type)
+ */
+void ImgineContext::new_canvas(int rows, int cols, int cv_type)
+{
+    ++canvas_counter;
+    string id = "C" + to_string(canvas_counter);
+    this->active_canvas = new Canvas(id, rows, cols, cv_type);
+    this->canvases.push_back(this->active_canvas);
+}
+
+/** Create a new canvas.
+ */
+void ImgineContext::new_canvas()
+{
+    ++canvas_counter;
+    string id = "C" + to_string(canvas_counter);
+    this->active_canvas = new Canvas(id);
+    this->canvases.push_back(this->active_canvas);
+}
+
+/** Return a pointer to a canvas with the specified name.
+ */
+Canvas *ImgineContext::get_canvas_by_name(string canvas_name)
+{
+    for (auto &canvas : canvases) {
+        if (canvas->name == canvas_name) {
+            return canvas;
+        }
+    }
+    return nullptr;
+}
+
 /** Colored printf for debugging-only log message.
  */
 void ImgineContext::debug(const char *fmt, ...)
@@ -588,7 +620,7 @@ void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *con
 
     if (image_context->config.is_console_truecolor)
         cout << sgr_background_rgb(r, g, b,
-                                   string(image_context->config.columns, ' '))
+                                   string(image_context->config.console_columns, ' '))
              << flush;
 }
 
@@ -660,36 +692,6 @@ void ImgineContext::execute_run(vector<string> params)
     }
 }
 
-/** Create a new canvas. (given matrix size and type)
- */
-void ImgineContext::new_canvas(int rows, int cols, int cv_type)
-{
-    ++canvas_counter;
-    string id = "C" + to_string(canvas_counter);
-    this->active_canvas = new Canvas(id, rows, cols, cv_type);
-    this->canvases.push_back(this->active_canvas);
-}
 
-/** Create a new canvas.
- */
-void ImgineContext::new_canvas()
-{
-    ++canvas_counter;
-    string id = "C" + to_string(canvas_counter);
-    this->active_canvas = new Canvas(id);
-    this->canvases.push_back(this->active_canvas);
-}
-
-/**
- */
-Canvas *ImgineContext::get_canvas_by_name(string canvas_name)
-{
-    for (auto &canvas : canvases) {
-        if (canvas->name == canvas_name) {
-            return canvas;
-        }
-    }
-    return nullptr;
-}
 
 } // namespace img_core

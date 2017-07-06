@@ -65,18 +65,23 @@ public:
     struct {
         bool is_console_ansi = false;
         bool is_console_truecolor = false;
-        int columns = 80;
+        int console_columns = 80;
         int verbosity = 0;
     } config;
-    int canvas_counter = 0;
     Canvas *active_canvas = nullptr;
     list<Canvas *> canvases = {};
+
+    // helper functions
+    void new_canvas(int, int, int);
+    void new_canvas();
+    Canvas *get_canvas_by_name(string);
 
     void debug(const char *, ...);
     void warn(const char *, ...);
     void err(const char *, ...);
     void wtf(const char *, ...);
 
+    // command executor functions
     void execute(vector<string>);
 
     void execute_status(vector<string>);
@@ -96,18 +101,16 @@ public:
     void execute_run(vector<string>);
 
 private:
-    // Never implement these!
+    // (not to be implemented)
     ImgineContext() {}
     ImgineContext(ImgineContext const&) = delete;
     ImgineContext& operator=(ImgineContext const&) = delete;
 
+    int canvas_counter = 0;
     list<thread> threads = {};
 
+    // callback handler functions
     static void onMouseInspection(int, int, int, int, void *);
-
-    void new_canvas(int, int, int);
-    void new_canvas();
-    Canvas *get_canvas_by_name(string);
 
     void algo_color_transfer(Canvas *, Canvas *);
 
