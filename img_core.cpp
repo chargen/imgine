@@ -390,7 +390,8 @@ void ImgineContext::execute_properties(vector<string> params)
 void ImgineContext::execute_dump(vector<string> params)
 {
     if (active_canvas) {
-        cout << *(active_canvas->current->mat) << endl;
+        cout << format(*(active_canvas->current->mat), Formatter::FMT_PYTHON)
+             << endl;
     } else {
         err("No active canvas.\n");
     }
