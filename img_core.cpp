@@ -15,7 +15,6 @@ using namespace cv;
 using namespace util_color;
 using namespace util_term;
 
-using std::cerr;
 using std::cout;
 using std::endl;
 using std::exception;
@@ -219,6 +218,9 @@ void ImgineContext::execute(vector<string> params)
 
     } else if (cmd == ":statistics" || cmd == ":stat" || cmd == ":st") {
         execute_statistics(params);
+
+    } else if (cmd == ":run") {
+        execute_run(params);
 
     } else {
         // TODO: more commands
@@ -627,6 +629,35 @@ void ImgineContext::execute_statistics(vector<string> params)
     }
 }
 
+/** Run:
+ */
+void ImgineContext::execute_run(vector<string> params)
+{
+    if (params.size() >= 2) {
+        string scmd = params.at(1);
+
+        if (scmd == "color_transfer") {
+            if (params.size() >= 4) {
+                Canvas *src_canvas = get_canvas_by_name(params.at(2));
+                Canvas *ref_canvas = get_canvas_by_name(params.at(3));
+
+                if (src_canvas && ref_canvas) {
+                    algo_color_transfer(src_canvas, ref_canvas);
+                } else {
+                    err("Canvas not found.\n");
+                }
+            } else {
+                warn("? :run color_transfer SRC_CANVAS REF_CANVAS\n");
+            }
+        } else {
+            // TODO: more commands
+            err("Unknown subcommand.\n");
+        }
+    } else {
+        warn("? :run ALGORITHM [PARAMS]\n");
+    }
+}
+
 /** Create a new canvas. (given matrix size and type)
  */
 void ImgineContext::new_canvas(int rows, int cols, int cv_type)
@@ -645,6 +676,18 @@ void ImgineContext::new_canvas()
     string id = "Canvas_" + to_string(canvas_counter);
     this->active_canvas = new Canvas(id);
     this->canvases.push_back(this->active_canvas);
+}
+
+/**
+ */
+Canvas *ImgineContext::get_canvas_by_name(string canvas_name)
+{
+    for (auto &canvas : canvases) {
+        if (canvas->name == canvas_name) {
+            return canvas;
+        }
+    }
+    return nullptr;
 }
 
 } // namespace img_core

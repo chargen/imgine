@@ -93,6 +93,7 @@ public:
     void execute_inspect(vector<string>);
     void execute_select(vector<string>);
     void execute_statistics(vector<string>);
+    void execute_run(vector<string>);
 
 private:
     // Never implement these!
@@ -106,6 +107,9 @@ private:
 
     void new_canvas(int, int, int);
     void new_canvas();
+    Canvas *get_canvas_by_name(string);
+
+    void algo_color_transfer(Canvas *, Canvas *);
 
 };
 
