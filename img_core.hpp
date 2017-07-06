@@ -6,6 +6,8 @@
 
 #include <thread>
 
+using namespace cv;
+
 using std::list;
 using std::string;
 using std::thread;
@@ -32,8 +34,8 @@ public:
     ~CanvasState();
 
     string id;
-    cv::Mat *mat;
-    cv::Rect2d roi;
+    Mat *mat;
+    Rect2d roi;
 
 };
 
@@ -112,9 +114,12 @@ private:
     // callback handler functions
     static void onMouseInspection(int, int, int, int, void *);
 
-    void algo_color_transfer(Canvas *, Canvas *);
-
 };
+
+// experimental procedures
+Mat algo_color_transfer(Canvas *, Canvas *);
+
+
 
 } // namespace img_core
 

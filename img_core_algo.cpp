@@ -13,7 +13,7 @@ namespace img_core {
 /** Color Transfer.
  *  (E. Reinhard et al., "Color Transfer between Images". 2001.)
  */
-void ImgineContext::algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas)
+Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas)
 {
     // TODO: handle non-3-channel images
 
@@ -50,20 +50,7 @@ void ImgineContext::algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas)
     dst_mat.convertTo(dst_mat, CV_8UC3);
     cvtColor(dst_mat, dst_mat, CV_Lab2BGR);
 
-    new_canvas();
-    *active_canvas->current->mat = dst_mat;
-    //active_canvas->current->mat = new Mat(dst_mat);
-    if (active_canvas->current->mat->data) {
-        int rows = active_canvas->current->mat->rows;
-        int cols = active_canvas->current->mat->cols;
-        int cv_type = active_canvas->current->mat->type();
-        active_canvas->current->roi = Rect2d(0, 0, cols, rows);
-        // TODO: rename canvas
-        active_canvas->rows = rows;
-        active_canvas->cols = cols;
-        active_canvas->cv_type = cv_type;
-        cout << "  Canvas name:\t" << active_canvas->name << endl;
-    }
+    return dst_mat;
 }
 
 } // namespace img_core

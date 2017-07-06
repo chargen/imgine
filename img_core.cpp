@@ -669,6 +669,7 @@ void ImgineContext::execute_procedure(vector<string> params)
 {
     if (params.size() >= 2) {
         string scmd = params.at(1);
+        Mat result;
 
         if (scmd == "color_transfer") {
             if (params.size() >= 4) {
@@ -676,22 +677,41 @@ void ImgineContext::execute_procedure(vector<string> params)
                 Canvas *ref_canvas = get_canvas_by_name(params.at(3));
 
                 if (src_canvas && ref_canvas) {
-                    algo_color_transfer(src_canvas, ref_canvas);
+                    result = algo_color_transfer(src_canvas, ref_canvas);
                 } else {
                     err("Canvas not found.\n");
+                    return;
                 }
             } else {
                 warn("? :procedure color_transfer SRC_CANVAS REF_CANVAS\n");
+                return;
             }
+
         } else {
             // TODO: more commands
             err("Unknown subcommand.\n");
+            return;
         }
+
+        // put result into a new canvas
+        new_canvas();
+        *active_canvas->current->mat = result;
+        //active_canvas->current->mat = new Mat(dst_mat);
+        if (active_canvas->current->mat->data) {
+            int rows = active_canvas->current->mat->rows;
+            int cols = active_canvas->current->mat->cols;
+            int cv_type = active_canvas->current->mat->type();
+            active_canvas->current->roi = Rect2d(0, 0, cols, rows);
+            // TODO: rename canvas
+            active_canvas->rows = rows;
+            active_canvas->cols = cols;
+            active_canvas->cv_type = cv_type;
+            cout << "  Canvas name:\t" << active_canvas->name << endl;
+        }
+
     } else {
         warn("? :procedure ALGORITHM [PARAMS]\n");
     }
 }
-
-
 
 } // namespace img_core
