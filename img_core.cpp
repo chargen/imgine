@@ -585,9 +585,10 @@ void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *con
     cout << "  RGB hex:\t" << rgb_to_hex(r, g, b) << endl;
     cout << "  Opacity:\t" << alpha_to_opacity(a) << endl;
 
-    cout << sgr_background_rgb(r, g, b,
-                               string(image_context->config.columns, ' '))
-         << flush;
+    if (image_context->config.is_console_truecolor)
+        cout << sgr_background_rgb(r, g, b,
+                                   string(image_context->config.columns, ' '))
+             << flush;
 }
 
 /** Select:
@@ -663,7 +664,7 @@ void ImgineContext::execute_run(vector<string> params)
 void ImgineContext::new_canvas(int rows, int cols, int cv_type)
 {
     ++canvas_counter;
-    string id = "Canvas_" + to_string(canvas_counter);
+    string id = "C" + to_string(canvas_counter);
     this->active_canvas = new Canvas(id, rows, cols, cv_type);
     this->canvases.push_back(this->active_canvas);
 }
@@ -673,7 +674,7 @@ void ImgineContext::new_canvas(int rows, int cols, int cv_type)
 void ImgineContext::new_canvas()
 {
     ++canvas_counter;
-    string id = "Canvas_" + to_string(canvas_counter);
+    string id = "C" + to_string(canvas_counter);
     this->active_canvas = new Canvas(id);
     this->canvases.push_back(this->active_canvas);
 }
