@@ -251,8 +251,8 @@ void ImgineContext::execute(vector<string> params)
     } else if (cmd == ":statistics" || cmd == ":stat" || cmd == ":st") {
         execute_statistics(params);
 
-    } else if (cmd == ":run") {
-        execute_run(params);
+    } else if (cmd == ":procedure" || cmd == ":proc" || cmd == ":P") {
+        execute_procedure(params);
 
     } else {
         // TODO: more commands
@@ -663,9 +663,9 @@ void ImgineContext::execute_statistics(vector<string> params)
     }
 }
 
-/** Run:
+/** Procedure:
  */
-void ImgineContext::execute_run(vector<string> params)
+void ImgineContext::execute_procedure(vector<string> params)
 {
     if (params.size() >= 2) {
         string scmd = params.at(1);
@@ -681,14 +681,14 @@ void ImgineContext::execute_run(vector<string> params)
                     err("Canvas not found.\n");
                 }
             } else {
-                warn("? :run color_transfer SRC_CANVAS REF_CANVAS\n");
+                warn("? :procedure color_transfer SRC_CANVAS REF_CANVAS\n");
             }
         } else {
             // TODO: more commands
             err("Unknown subcommand.\n");
         }
     } else {
-        warn("? :run ALGORITHM [PARAMS]\n");
+        warn("? :procedure ALGORITHM [PARAMS]\n");
     }
 }
 

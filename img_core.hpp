@@ -98,7 +98,7 @@ public:
     void execute_inspect(vector<string>);
     void execute_select(vector<string>);
     void execute_statistics(vector<string>);
-    void execute_run(vector<string>);
+    void execute_procedure(vector<string>);
 
 private:
     // (not to be implemented)
