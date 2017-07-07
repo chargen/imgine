@@ -77,6 +77,81 @@ Mat space_xyz_to_lms(Mat src)
     return dst;
 }
 
+/** Convert a 3-channel matrix from LMS space to CIE XYZ space.
+ */
+Mat space_lms_to_xyz(Mat src)
+{
+    Mat trans_mat = (Mat_<float>(3,3) <<
+                     0.38971, 0.68898, -0.07868,
+                     -0.22981, 1.18340, 0.04641,
+                     0.00000, 0.00000, 1.00000);
+    Mat dst = src.clone();
+    for (int i = 0; i < src.rows; i++) {
+        for (int j = 0; j < src.cols; j++) {
+            Vec3f& s = src.at<Vec3f>(i, j);
+            Mat t = trans_mat.inv() * Mat(s);
+            dst.at<Vec3f>(i, j).val[0] = t.at<float>(0, 0);
+            dst.at<Vec3f>(i, j).val[1] = t.at<float>(1, 0);
+            dst.at<Vec3f>(i, j).val[2] = t.at<float>(2, 0);
+        }
+    }
+    return dst;
+}
+
+/** Convert a 3-channel matrix from LMS space to Lαβ space.
+ *  Reference:
+ *    E. Reinhard and T. Pouli, "Colour Spaces for Colour Transfer". 2011.
+ */
+Mat space_lms_to_lalphabeta(Mat src)
+{
+    Mat trans_mat1 = (Mat_<float>(3,3) <<
+                      1, 1, 1,
+                      1, 1, -2,
+                      1, -1, 0);
+    Mat trans_mat2 = (Mat_<float>(3,3) <<
+                      1. / sqrt(3), 0, 0,
+                      0, 1. / sqrt(6), 0,
+                      0, 0, 1. / sqrt(2));
+    Mat dst = src.clone();
+    log(dst, dst);
+    for (int i = 0; i < dst.rows; i++) {
+        for (int j = 0; j < dst.cols; j++) {
+            Vec3f& s = dst.at<Vec3f>(i, j);
+            Mat t = trans_mat2 * (trans_mat1 * Mat(s));
+            dst.at<Vec3f>(i, j).val[0] = t.at<float>(0, 0);
+            dst.at<Vec3f>(i, j).val[1] = t.at<float>(1, 0);
+            dst.at<Vec3f>(i, j).val[2] = t.at<float>(2, 0);
+        }
+    }
+    return dst;
+}
+
+/** Convert a 3-channel matrix from Lαβ space to LMS space.
+ */
+Mat space_lalphabeta_to_lms(Mat src)
+{
+    Mat trans_mat1 = (Mat_<float>(3,3) <<
+                      1, 1, 1,
+                      1, 1, -2,
+                      1, -1, 0);
+    Mat trans_mat2 = (Mat_<float>(3,3) <<
+                      1. / sqrt(3), 0, 0,
+                      0, 1. / sqrt(6), 0,
+                      0, 0, 1. / sqrt(2));
+    Mat dst = src.clone();
+    for (int i = 0; i < dst.rows; i++) {
+        for (int j = 0; j < dst.cols; j++) {
+            Vec3f& s = dst.at<Vec3f>(i, j);
+            Mat t = trans_mat1.inv() * (trans_mat2.inv() * Mat(s));
+            dst.at<Vec3f>(i, j).val[0] = t.at<float>(0, 0);
+            dst.at<Vec3f>(i, j).val[1] = t.at<float>(1, 0);
+            dst.at<Vec3f>(i, j).val[2] = t.at<float>(2, 0);
+        }
+    }
+    exp(dst, dst);
+    return dst;
+}
+
 
 
 } // namespace util_color

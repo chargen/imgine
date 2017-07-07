@@ -17,6 +17,9 @@ float alpha_to_opacity(unsigned char);
 
 Mat space_bgr_to_xyz(Mat);
 Mat space_xyz_to_lms(Mat);
+Mat space_lms_to_xyz(Mat);
+Mat space_lms_to_lalphabeta(Mat);
+Mat space_lalphabeta_to_lms(Mat);
 
 
 
