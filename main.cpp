@@ -55,9 +55,9 @@ int main(int argc, char *argv[])
          "enable debugging")
         ("optimization", po::value<int>()->default_value(10),
          "optimization level")
-        ("include-path,I",
+        ("execute,e",
          po::value< vector<string> >()->composing(),
-         "include path")
+         "execute commands on startup")
         ;
 
     // TODO: Hidden options
@@ -113,11 +113,12 @@ int main(int argc, char *argv[])
         //cout << "optimization level: " << vm["optimization"].as<int>() << endl;
     }
 
-    if (vm.count("include-path")) {
-        //vector<string> values = vm["include-path"].as< vector<string> >();
-        //for (const auto &value : values) {
-        //    cout << "include path: " << value << endl;
-        //}
+    list<string> execute_commands = {};
+    if (vm.count("execute")) {
+        vector<string> values = vm["execute"].as< vector<string> >();
+        for (const auto &value : values) {
+            execute_commands.push_back(string(value));
+        }
     }
 
     list<string> input_files = {};
@@ -167,7 +168,13 @@ int main(int argc, char *argv[])
     while (is_console_reading) {
         int count = 0;
         const char *line;
-        line = el_gets(el, &count);
+        if (execute_commands.empty()) {
+            line = el_gets(el, &count);
+        } else {
+            line = execute_commands.front().c_str();
+            count = execute_commands.front().size();
+            execute_commands.pop_front();
+        }
 
         if (count) {
             history(console_history, &ev, H_ENTER, line); // add to history
