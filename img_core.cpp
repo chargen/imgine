@@ -675,15 +675,18 @@ void ImgineContext::execute_procedure(vector<string> params)
             if (params.size() >= 4) {
                 Canvas *src_canvas = get_canvas_by_name(params.at(2));
                 Canvas *ref_canvas = get_canvas_by_name(params.at(3));
+                string colorspace = "lab";
+                if (params.size() >= 5)
+                    colorspace = params.at(4);
 
                 if (src_canvas && ref_canvas) {
-                    result = algo_color_transfer(src_canvas, ref_canvas);
+                    result = algo_color_transfer(src_canvas, ref_canvas, colorspace);
                 } else {
                     err("Canvas not found.\n");
                     return;
                 }
             } else {
-                warn("? :procedure color_transfer SRC_CANVAS REF_CANVAS\n");
+                warn("? :procedure color_transfer SRC_CANVAS REF_CANVAS [COLORSPACE]\n");
                 return;
             }
 

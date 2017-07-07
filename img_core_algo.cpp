@@ -1,9 +1,11 @@
 
 #include "img_core.hpp"
+#include "util_color.hpp"
 
 #include <opencv2/opencv.hpp>
 
 using namespace cv;
+using namespace util_color;
 
 using std::cout;
 using std::endl;
@@ -11,24 +13,54 @@ using std::endl;
 namespace img_core {
 
 /** Color Transfer.
- *  (E. Reinhard et al., "Color Transfer between Images". 2001.)
+ *  Reference:
+ *    E. Reinhard et al., "Color Transfer between Images". 2001.
+ *    E. Reinhard and T. Pouli, "Colour Spaces for Colour Transfer". 2011.
  */
-Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas)
+Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas,
+                        string colorspace)
 {
-    // TODO: handle non-3-channel images
+    // TODO: handle non-CV_8UC3 images
 
-    // convert images to logarithmic, floating-point Lab space
-    Mat src_mat, ref_mat, dst_mat;
-    cvtColor(*(src_canvas->current->mat), src_mat, CV_BGR2Lab);
-    cvtColor(*(ref_canvas->current->mat), ref_mat, CV_BGR2Lab);
+    Mat src_mat = src_canvas->current->mat->clone();
+    Mat src_s(src_mat, src_canvas->current->roi);
+    Mat ref_s(*(ref_canvas->current->mat), ref_canvas->current->roi);
+    Mat dst_mat;
+
     src_mat.convertTo(src_mat, CV_32FC3);
-    ref_mat.convertTo(ref_mat, CV_32FC3);
-    log(src_mat, src_mat);
-    log(ref_mat, ref_mat);
+    src_s.convertTo(src_s, CV_32FC3);
+    ref_s.convertTo(ref_s, CV_32FC3);
+    // scale down to [0,1]
+    src_mat *= 1. / 255;
+    src_s *= 1. / 255;
+    ref_s *= 1. / 255;
+
+    if (colorspace == "RGB") {
+        cvtColor(src_mat, src_mat, CV_BGR2RGB);
+        cvtColor(src_s, src_s, CV_BGR2RGB);
+        cvtColor(ref_s, ref_s, CV_BGR2RGB);
+    } else if (colorspace == "HSV") {
+        cvtColor(src_mat, src_mat, CV_BGR2HSV);
+        cvtColor(src_s, src_s, CV_BGR2HSV);
+        cvtColor(ref_s, ref_s, CV_BGR2HSV);
+    } else if (colorspace == "XYZ") {
+        cvtColor(src_mat, src_mat, CV_BGR2XYZ);
+        cvtColor(src_s, src_s, CV_BGR2XYZ);
+        cvtColor(ref_s, ref_s, CV_BGR2XYZ);
+    } else if (colorspace == "CIELab") {
+        cvtColor(src_mat, src_mat, CV_BGR2Lab);
+        cvtColor(src_s, src_s, CV_BGR2Lab);
+        cvtColor(ref_s, ref_s, CV_BGR2Lab);
+    } else { // default: Lαβ space
+        cvtColor(src_mat, src_mat, CV_BGR2XYZ);
+        cvtColor(src_s, src_s, CV_BGR2XYZ);
+        cvtColor(ref_s, ref_s, CV_BGR2XYZ);
+        src_mat = space_lms_to_lalphabeta(space_xyz_to_lms(src_mat));
+        src_s = space_lms_to_lalphabeta(space_xyz_to_lms(src_s));
+        ref_s = space_lms_to_lalphabeta(space_xyz_to_lms(ref_s));
+    }
 
     // compute partial statistics of swatches (ROIs)
-    Mat src_s(src_mat, src_canvas->current->roi);
-    Mat ref_s(ref_mat, ref_canvas->current->roi);
     vector<double> src_s_mean, ref_s_mean, src_s_stddev, ref_s_stddev;
     meanStdDev(src_s, src_s_mean, src_s_stddev);
     meanStdDev(ref_s, ref_s_mean, ref_s_stddev);
@@ -44,11 +76,25 @@ Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas)
             * (src_comp[i] - src_s_mean[i]) + ref_s_mean[i];
     }
 
-    // merge and generate the target BGR image
+    // merge into a multi-channel matrix
     merge(dst_comp, dst_mat);
-    exp(dst_mat, dst_mat);
+
+    if (colorspace == "RGB") {
+        cvtColor(dst_mat, dst_mat, CV_RGB2BGR);
+    } else if (colorspace == "HSV") {
+        cvtColor(dst_mat, dst_mat, CV_HSV2BGR);
+    } else if (colorspace == "XYZ") {
+        cvtColor(dst_mat, dst_mat, CV_XYZ2BGR);
+    } else if (colorspace == "CIELab") {
+        cvtColor(dst_mat, dst_mat, CV_Lab2BGR);
+    } else { // default: Lαβ space
+        dst_mat = space_lms_to_xyz(space_lalphabeta_to_lms(dst_mat));
+        cvtColor(dst_mat, dst_mat, CV_XYZ2BGR);
+    }
+
+    // scale up to [0,255]
+    dst_mat *= 255;
     dst_mat.convertTo(dst_mat, CV_8UC3);
-    cvtColor(dst_mat, dst_mat, CV_Lab2BGR);
 
     return dst_mat;
 }
