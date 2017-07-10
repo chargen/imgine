@@ -1,3 +1,4 @@
+#define Imgine_NAME "IMGine"
 #define Imgine_VERSION "@Imgine_VERSION@"
 #define Imgine_VERSION_MAJOR @Imgine_VERSION_MAJOR@
 #define Imgine_VERSION_MINOR @Imgine_VERSION_MINOR@

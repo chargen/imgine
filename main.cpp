@@ -122,9 +122,8 @@ int main(int argc, char *argv[])
     }
 
     // Instantiate the context and initialize its config.
-
     ImgineContext &imgine = ImgineContext::singleton();
-
+    cout << Imgine_NAME << " " << Imgine_VERSION << endl;
     imgine.config.is_console_ansi = util_term::check_ansi();
     imgine.config.is_console_truecolor = util_term::check_truecolor();
     imgine.config.console_columns = util_term::get_width();
@@ -133,6 +132,8 @@ int main(int argc, char *argv[])
     } else if (vm.count("debug")) {
         imgine.config.verbosity = 1;
     }
+    if (imgine.config.verbosity)
+        imgine.debug("Debugging enabled.\n");
 
     // Process --input-file imports.
     for (string &input_file : input_files) {
