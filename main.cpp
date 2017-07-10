@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 
     // Process --input-file imports.
     for (string &input_file : input_files) {
-        imgine.execute_import({":import", input_file});
+        imgine.execute({":import", input_file});
     }
 
     // Initialize EditLine.

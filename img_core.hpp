@@ -15,7 +15,7 @@ using std::vector;
 
 namespace img_core {
 
-const std::unordered_map<int, std::tuple<int, int, string> >
+const std::unordered_map< int, std::tuple<int, int, string> >
 IMG_CV_TYPES = {
     {CV_8UC1, {1, 8, "uchar"}},
     {CV_8UC2, {2, 8, "uchar"}},
@@ -34,7 +34,7 @@ public:
     ~CanvasState();
 
     string id;
-    Mat *mat;
+    Mat *mat = nullptr;
     Rect2d roi;
 
 };
@@ -73,7 +73,6 @@ public:
     Canvas *active_canvas = nullptr;
     list<Canvas *> canvases = {};
 
-    // helper functions
     void new_canvas(int, int, int);
     void new_canvas();
     Canvas *get_canvas_by_name(string);
@@ -83,9 +82,21 @@ public:
     void err(const char *, ...);
     void wtf(const char *, ...);
 
-    // command executor functions
     void execute(vector<string>);
 
+private:
+    // (not to be implemented)
+    ImgineContext() {}
+    ImgineContext(ImgineContext const&) = delete;
+    ImgineContext& operator=(ImgineContext const&) = delete;
+
+    int canvas_counter = 0;
+    list<thread> threads = {};
+
+    // callback handler functions
+    static void onMouseInspection(int, int, int, int, void *);
+
+    // command executor functions
     void execute_status(vector<string>);
     void execute_list(vector<string>);
     void execute_switch_to(vector<string>);
@@ -101,18 +112,6 @@ public:
     void execute_select(vector<string>);
     void execute_statistics(vector<string>);
     void execute_procedure(vector<string>);
-
-private:
-    // (not to be implemented)
-    ImgineContext() {}
-    ImgineContext(ImgineContext const&) = delete;
-    ImgineContext& operator=(ImgineContext const&) = delete;
-
-    int canvas_counter = 0;
-    list<thread> threads = {};
-
-    // callback handler functions
-    static void onMouseInspection(int, int, int, int, void *);
 
 };
 

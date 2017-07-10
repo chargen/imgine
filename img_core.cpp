@@ -33,7 +33,7 @@ namespace img_core {
  */
 CanvasState::CanvasState(int rows, int cols, int cv_type)
 {
-    // TODO: id
+    // TODO: assign id
     this->mat = new Mat(rows, cols, cv_type, Scalar::all(0));
     this->roi = Rect2d(0, 0, cols, rows);
 }
@@ -42,7 +42,7 @@ CanvasState::CanvasState(int rows, int cols, int cv_type)
  */
 CanvasState::CanvasState()
 {
-    // TODO: id
+    // TODO: assign id
     this->mat = new Mat();
     this->roi = Rect2d();
 }
@@ -77,7 +77,7 @@ Canvas::Canvas(string id)
     this->name = id;
     this->rows = 0;
     this->cols = 0;
-    this->cv_type = CV_8UC1;
+    this->cv_type = CV_8UC3;
     // A new canvas starts with an initial state.
     this->current = new CanvasState();
     this->history.push_back(this->current);
@@ -105,12 +105,15 @@ ImgineContext& ImgineContext::singleton()
 ImgineContext::~ImgineContext()
 {
     destroyAllWindows();
+    debug("Waiting for all threads to terminate... ");
     for (auto &thread : threads) {
         thread.join();
     }
+    debug("Done.\n");
     for (auto &canvas : canvases) {
         delete canvas;
     }
+    // TODO: save workspace
 }
 
 /** Create a new canvas. (given matrix size and type)
@@ -133,7 +136,7 @@ void ImgineContext::new_canvas()
     this->canvases.push_back(this->active_canvas);
 }
 
-/** Return a pointer to a canvas with the specified name.
+/** Return a pointer to the canvas with the specified name.
  */
 Canvas *ImgineContext::get_canvas_by_name(string canvas_name)
 {
@@ -353,7 +356,7 @@ void ImgineContext::execute_new(vector<string> params)
 }
 
 /** Delete:
- *  Deletes a canvas.
+ *  Deletes a canvas by name.
  */
 void ImgineContext::execute_delete(vector<string> params)
 {
@@ -383,7 +386,7 @@ void ImgineContext::execute_rename(vector<string> params)
     if (params.size() == 2) {
         string canvas_name = params.at(1);
 
-        // TODO: disallow duplicate names
+        // TODO: disallow duplicate names!
         if (active_canvas) {
             active_canvas->name = canvas_name;
             cout << "  Canvas name:\t" << canvas_name << endl;
@@ -483,7 +486,7 @@ void ImgineContext::execute_export(vector<string> params)
 {
     if (params.size() >= 2) {
         string file_name = params.at(1);
-        vector<int> cv_params;
+        vector<int> cv_params = {};
         if (params.size() >= 3) {
             int param_key, param_val;
             const char *temp = params.at(2).c_str();
@@ -544,6 +547,7 @@ void ImgineContext::execute_show(vector<string> params)
         // FIXME: resizable window using CV_WINDOW_NORMAL
         namedWindow(active_canvas->name, WINDOW_AUTOSIZE);
         imshow(active_canvas->name, *(active_canvas->current->mat));
+
         threads.push_back(thread(waitKey, 0));
 
     } else {
@@ -563,6 +567,7 @@ void ImgineContext::execute_inspect(vector<string> params)
         // FIXME: resizable window using CV_WINDOW_NORMAL
         namedWindow(active_canvas->name, WINDOW_AUTOSIZE);
         imshow(active_canvas->name, *(active_canvas->current->mat));
+
         setMouseCallback(active_canvas->name, onMouseInspection, this);
         execute_properties(params);
         cout << string(5, '\n') << flush;
@@ -630,6 +635,7 @@ void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *con
 void ImgineContext::execute_select(vector<string> params)
 {
     if (active_canvas) {
+        // FIXME: avoid the buggy selectROI()
         bool showCrosshair = false;
         bool fromCenter = false;
         active_canvas->current->roi =
@@ -691,7 +697,7 @@ void ImgineContext::execute_procedure(vector<string> params)
             }
 
         } else {
-            // TODO: more commands
+            // TODO: more subcommands
             err("Unknown subcommand.\n");
             return;
         }
@@ -710,8 +716,13 @@ void ImgineContext::execute_procedure(vector<string> params)
             active_canvas->cols = cols;
             active_canvas->cv_type = cv_type;
             cout << "  Canvas name:\t" << active_canvas->name << endl;
-        }
 
+        } else {
+            canvases.remove(active_canvas);
+            delete active_canvas;
+            active_canvas = nullptr;
+            err("Import failed.\n");
+        }
     } else {
         warn("? :procedure ALGORITHM [PARAMS]\n");
     }
