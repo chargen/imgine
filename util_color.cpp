@@ -33,7 +33,7 @@ float alpha_to_opacity(unsigned char a)
  *  Reference:
  *    <http://docs.opencv.org/3.0-beta/modules/imgproc/doc/miscellaneous_transformations.html>
  */
-Mat space_bgr_to_xyz(Mat src)
+Mat convert_BGR_to_CIEXYZ(Mat src, bool forwardDirection = true)
 {
     Mat trans_mat = (Mat_<float>(3,3) <<
                      0.412453, 0.357580, 0.180423,
@@ -43,8 +43,8 @@ Mat space_bgr_to_xyz(Mat src)
     for (int i = 0; i < src.rows; i++) {
         for (int j = 0; j < src.cols; j++) {
             Vec3f& s = src.at<Vec3f>(i, j);
-            Mat t = trans_mat * (Mat_<float>(3,1) <<
-                                 s.val[2], s.val[1], s.val[0]); // BGR to RGB
+            Mat t = (forwardDirection ? trans_mat : trans_mat.inv()) *
+                (Mat_<float>(3,1) << s.val[2], s.val[1], s.val[0]); // BGR to RGB
             dst.at<Vec3f>(i, j).val[0] = t.at<float>(0, 0);
             dst.at<Vec3f>(i, j).val[1] = t.at<float>(1, 0);
             dst.at<Vec3f>(i, j).val[2] = t.at<float>(2, 0);
@@ -58,7 +58,7 @@ Mat space_bgr_to_xyz(Mat src)
  *  Reference:
  *    <https://en.wikipedia.org/wiki/LMS_color_space>
  */
-Mat space_xyz_to_lms(Mat src)
+Mat convert_CIEXYZ_to_LMS(Mat src, bool forwardDirection = true)
 {
     Mat trans_mat = (Mat_<float>(3,3) <<
                      0.38971, 0.68898, -0.07868,
@@ -68,7 +68,7 @@ Mat space_xyz_to_lms(Mat src)
     for (int i = 0; i < src.rows; i++) {
         for (int j = 0; j < src.cols; j++) {
             Vec3f& s = src.at<Vec3f>(i, j);
-            Mat t = trans_mat * Mat(s);
+            Mat t = (forwardDirection ? trans_mat : trans_mat.inv()) * Mat(s);
             dst.at<Vec3f>(i, j).val[0] = t.at<float>(0, 0);
             dst.at<Vec3f>(i, j).val[1] = t.at<float>(1, 0);
             dst.at<Vec3f>(i, j).val[2] = t.at<float>(2, 0);
@@ -77,32 +77,11 @@ Mat space_xyz_to_lms(Mat src)
     return dst;
 }
 
-/** Convert a 3-channel matrix from LMS space to CIE XYZ space.
- */
-Mat space_lms_to_xyz(Mat src)
-{
-    Mat trans_mat = (Mat_<float>(3,3) <<
-                     0.38971, 0.68898, -0.07868,
-                     -0.22981, 1.18340, 0.04641,
-                     0.00000, 0.00000, 1.00000);
-    Mat dst = src.clone();
-    for (int i = 0; i < src.rows; i++) {
-        for (int j = 0; j < src.cols; j++) {
-            Vec3f& s = src.at<Vec3f>(i, j);
-            Mat t = trans_mat.inv() * Mat(s);
-            dst.at<Vec3f>(i, j).val[0] = t.at<float>(0, 0);
-            dst.at<Vec3f>(i, j).val[1] = t.at<float>(1, 0);
-            dst.at<Vec3f>(i, j).val[2] = t.at<float>(2, 0);
-        }
-    }
-    return dst;
-}
-
-/** Convert a 3-channel matrix from LMS space to Lαβ space.
+/** Convert a 3-channel matrix from LMS space to Ruderman's lαβ space.
  *  Reference:
  *    E. Reinhard and T. Pouli, "Colour Spaces for Colour Transfer". 2011.
  */
-Mat space_lms_to_lalphabeta(Mat src)
+Mat convert_LMS_to_Ruderman_lab(Mat src, bool forwardDirection = true)
 {
     Mat trans_mat1 = (Mat_<float>(3,3) <<
                       1, 1, 1,
@@ -113,43 +92,42 @@ Mat space_lms_to_lalphabeta(Mat src)
                       0, 1. / sqrt(6), 0,
                       0, 0, 1. / sqrt(2));
     Mat dst = src.clone();
-    log(dst, dst);
+    if (forwardDirection)
+        log(dst, dst);
     for (int i = 0; i < dst.rows; i++) {
         for (int j = 0; j < dst.cols; j++) {
             Vec3f& s = dst.at<Vec3f>(i, j);
-            Mat t = trans_mat2 * (trans_mat1 * Mat(s));
+            Mat t = (forwardDirection ? trans_mat2 * (trans_mat1 * Mat(s))
+                     : trans_mat1.inv() * (trans_mat2.inv() * Mat(s)));
             dst.at<Vec3f>(i, j).val[0] = t.at<float>(0, 0);
             dst.at<Vec3f>(i, j).val[1] = t.at<float>(1, 0);
             dst.at<Vec3f>(i, j).val[2] = t.at<float>(2, 0);
         }
     }
+    if (!forwardDirection)
+        exp(dst, dst);
     return dst;
 }
 
-/** Convert a 3-channel matrix from Lαβ space to LMS space.
+/** General colorspace conversion funtion.
  */
-Mat space_lalphabeta_to_lms(Mat src)
+Mat convert_colorspace(Mat src, Colorspace src_space, Colorspace dst_space)
 {
-    Mat trans_mat1 = (Mat_<float>(3,3) <<
-                      1, 1, 1,
-                      1, 1, -2,
-                      1, -1, 0);
-    Mat trans_mat2 = (Mat_<float>(3,3) <<
-                      1. / sqrt(3), 0, 0,
-                      0, 1. / sqrt(6), 0,
-                      0, 0, 1. / sqrt(2));
-    Mat dst = src.clone();
-    for (int i = 0; i < dst.rows; i++) {
-        for (int j = 0; j < dst.cols; j++) {
-            Vec3f& s = dst.at<Vec3f>(i, j);
-            Mat t = trans_mat1.inv() * (trans_mat2.inv() * Mat(s));
-            dst.at<Vec3f>(i, j).val[0] = t.at<float>(0, 0);
-            dst.at<Vec3f>(i, j).val[1] = t.at<float>(1, 0);
-            dst.at<Vec3f>(i, j).val[2] = t.at<float>(2, 0);
-        }
+    if (src_space == CIEXYZ && dst_space == LMS) {
+        return convert_CIEXYZ_to_LMS(src, true);
+
+    } else if (src_space == LMS && dst_space == CIEXYZ) {
+        return convert_CIEXYZ_to_LMS(src, false);
+
+    } else if (src_space == LMS && dst_space == Ruderman_lab) {
+        return convert_LMS_to_Ruderman_lab(src, true);
+
+    } else if (src_space == Ruderman_lab && dst_space == LMS) {
+        return convert_LMS_to_Ruderman_lab(src, false);
+
+    } else {
+        return src; // FIXME:
     }
-    exp(dst, dst);
-    return dst;
 }
 
 

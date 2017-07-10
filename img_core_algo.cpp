@@ -54,9 +54,9 @@ Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas, Colorspace space
         cvtColor(src_mat, src_mat, CV_BGR2XYZ);
         cvtColor(src_s, src_s, CV_BGR2XYZ);
         cvtColor(ref_s, ref_s, CV_BGR2XYZ);
-        src_mat = space_lms_to_lalphabeta(space_xyz_to_lms(src_mat));
-        src_s = space_lms_to_lalphabeta(space_xyz_to_lms(src_s));
-        ref_s = space_lms_to_lalphabeta(space_xyz_to_lms(ref_s));
+        src_mat = convert_colorspace(convert_colorspace(src_mat, CIEXYZ, LMS), LMS, Ruderman_lab);
+        src_s = convert_colorspace(convert_colorspace(src_s, CIEXYZ, LMS), LMS, Ruderman_lab);
+        ref_s = convert_colorspace(convert_colorspace(ref_s, CIEXYZ, LMS), LMS, Ruderman_lab);
     }
 
     // compute partial statistics of swatches (ROIs)
@@ -87,7 +87,7 @@ Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas, Colorspace space
     } else if (space == CIELAB) {
         cvtColor(dst_mat, dst_mat, CV_Lab2BGR);
     } else { // default: Ruderman lαβ
-        dst_mat = space_lms_to_xyz(space_lalphabeta_to_lms(dst_mat));
+        dst_mat = convert_colorspace(convert_colorspace(dst_mat, Ruderman_lab, LMS), LMS, CIEXYZ);
         cvtColor(dst_mat, dst_mat, CV_XYZ2BGR);
     }
 
