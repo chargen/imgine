@@ -2,11 +2,14 @@
 #ifndef _IMG_CORE_HPP
 #define _IMG_CORE_HPP
 
+#include "util_color.hpp"
+
 #include <opencv2/opencv.hpp>
 
 #include <thread>
 
 using namespace cv;
+using namespace util_color;
 
 using std::list;
 using std::string;
@@ -116,7 +119,7 @@ private:
 };
 
 // experimental procedures
-Mat algo_color_transfer(Canvas *, Canvas *, string);
+Mat algo_color_transfer(Canvas *, Canvas *, Colorspace);
 
 
 

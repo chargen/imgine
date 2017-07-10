@@ -681,12 +681,17 @@ void ImgineContext::execute_procedure(vector<string> params)
             if (params.size() >= 4) {
                 Canvas *src_canvas = get_canvas_by_name(params.at(2));
                 Canvas *ref_canvas = get_canvas_by_name(params.at(3));
-                string colorspace = "lab";
+                Colorspace space = Ruderman_lab;
                 if (params.size() >= 5)
-                    colorspace = params.at(4);
+                    try {
+                        space = COLORSPACE_STRINGS.at(params.at(4));
+                    } catch (const std::out_of_range &e) {
+                        err("Unknown colorspace.\n");
+                        return;
+                    }
 
                 if (src_canvas && ref_canvas) {
-                    result = algo_color_transfer(src_canvas, ref_canvas, colorspace);
+                    result = algo_color_transfer(src_canvas, ref_canvas, space);
                 } else {
                     err("Canvas not found.\n");
                     return;

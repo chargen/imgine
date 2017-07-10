@@ -13,12 +13,11 @@ using std::endl;
 namespace img_core {
 
 /** Color Transfer.
- *  Reference:
+ *  References:
  *    E. Reinhard et al., "Color Transfer between Images". 2001.
  *    E. Reinhard and T. Pouli, "Colour Spaces for Colour Transfer". 2011.
  */
-Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas,
-                        string colorspace)
+Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas, Colorspace space)
 {
     // TODO: handle non-CV_8UC3 images
 
@@ -35,23 +34,23 @@ Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas,
     src_s *= 1. / 255;
     ref_s *= 1. / 255;
 
-    if (colorspace == "RGB") {
+    if (space == RGB || space == BGR) {
         cvtColor(src_mat, src_mat, CV_BGR2RGB);
         cvtColor(src_s, src_s, CV_BGR2RGB);
         cvtColor(ref_s, ref_s, CV_BGR2RGB);
-    } else if (colorspace == "HSV") {
+    } else if (space == HSV) {
         cvtColor(src_mat, src_mat, CV_BGR2HSV);
         cvtColor(src_s, src_s, CV_BGR2HSV);
         cvtColor(ref_s, ref_s, CV_BGR2HSV);
-    } else if (colorspace == "XYZ") {
+    } else if (space == CIEXYZ) {
         cvtColor(src_mat, src_mat, CV_BGR2XYZ);
         cvtColor(src_s, src_s, CV_BGR2XYZ);
         cvtColor(ref_s, ref_s, CV_BGR2XYZ);
-    } else if (colorspace == "CIELab") {
+    } else if (space == CIELAB) {
         cvtColor(src_mat, src_mat, CV_BGR2Lab);
         cvtColor(src_s, src_s, CV_BGR2Lab);
         cvtColor(ref_s, ref_s, CV_BGR2Lab);
-    } else { // default: Lαβ space
+    } else { // default: Ruderman lαβ
         cvtColor(src_mat, src_mat, CV_BGR2XYZ);
         cvtColor(src_s, src_s, CV_BGR2XYZ);
         cvtColor(ref_s, ref_s, CV_BGR2XYZ);
@@ -79,15 +78,15 @@ Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas,
     // merge into a multi-channel matrix
     merge(dst_comp, dst_mat);
 
-    if (colorspace == "RGB") {
+    if (space == RGB || space == BGR) {
         cvtColor(dst_mat, dst_mat, CV_RGB2BGR);
-    } else if (colorspace == "HSV") {
+    } else if (space == HSV) {
         cvtColor(dst_mat, dst_mat, CV_HSV2BGR);
-    } else if (colorspace == "XYZ") {
+    } else if (space == CIEXYZ) {
         cvtColor(dst_mat, dst_mat, CV_XYZ2BGR);
-    } else if (colorspace == "CIELab") {
+    } else if (space == CIELAB) {
         cvtColor(dst_mat, dst_mat, CV_Lab2BGR);
-    } else { // default: Lαβ space
+    } else { // default: Ruderman lαβ
         dst_mat = space_lms_to_xyz(space_lalphabeta_to_lms(dst_mat));
         cvtColor(dst_mat, dst_mat, CV_XYZ2BGR);
     }
@@ -98,5 +97,7 @@ Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas,
 
     return dst_mat;
 }
+
+
 
 } // namespace img_core

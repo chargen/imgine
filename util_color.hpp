@@ -12,6 +12,20 @@ using std::string;
 
 namespace util_color {
 
+enum Colorspace {
+    RGB, BGR, HSV, CIEXYZ, CIELAB, Ruderman_lab
+};
+
+const std::unordered_map<string, Colorspace>
+COLORSPACE_STRINGS = {
+    {"RGB", RGB},
+    {"BGR", BGR},
+    {"HSV", HSV},
+    {"CIEXYZ", CIEXYZ},
+    {"CIELAB", CIELAB},
+    {"Ruderman_lab", Ruderman_lab}
+};
+
 string rgb_to_hex(unsigned char, unsigned char, unsigned char);
 float alpha_to_opacity(unsigned char);
 
