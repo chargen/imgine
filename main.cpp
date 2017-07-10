@@ -24,14 +24,14 @@ using std::exception;
 using std::string;
 using std::vector;
 
-/** Default EditLine prompt string.
+/** EditLine prompt string.
  */
 char *prompt_string(EditLine *e)
 {
     return (char *)"> ";
 }
 
-/** Main function.
+/** Entry point.
  */
 int main(int argc, char *argv[])
 {
@@ -52,12 +52,12 @@ int main(int argc, char *argv[])
         ("verbose,v", po::value<int>()->implicit_value(1),
          "enable verbosity (optionally specify level)")
         ("debug,d",
-         "enable debugging")
-        ("optimization", po::value<int>()->default_value(10),
-         "optimization level")
+         "enable debugging (equivalent to --verbose=1)")
+        //("optimization", po::value<int>()->default_value(10),
+        //"optimization level")
         ("execute,e",
          po::value< vector<string> >()->composing(),
-         "execute commands on startup")
+         "execute command on startup")
         ;
 
     // TODO: Hidden options
@@ -101,17 +101,9 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    if (vm.count("verbose")) {
-        //cout << "verbosity level: " << vm["verbose"].as<int>() << endl;
-    }
-
-    if (vm.count("debug")) {
-        //cout << "debugging enabled" << endl;
-    }
-
-    if (vm.count("optimization")) {
+    //if (vm.count("optimization")) {
         //cout << "optimization level: " << vm["optimization"].as<int>() << endl;
-    }
+    //}
 
     list<string> execute_commands = {};
     if (vm.count("execute")) {
@@ -138,8 +130,11 @@ int main(int argc, char *argv[])
     imgine.config.console_columns = util_term::get_width();
     if (vm.count("verbose")) {
         imgine.config.verbosity = vm["verbose"].as<int>();
+    } else if (vm.count("debug")) {
+        imgine.config.verbosity = 1;
     }
 
+    // Process --input-file imports.
     for (string &input_file : input_files) {
         imgine.execute_import({":import", input_file});
     }
@@ -171,6 +166,7 @@ int main(int argc, char *argv[])
         if (execute_commands.empty()) {
             line = el_gets(el, &count);
         } else {
+            // Process an --execute command.
             line = execute_commands.front().c_str();
             count = execute_commands.front().size();
             execute_commands.pop_front();
