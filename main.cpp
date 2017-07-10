@@ -44,6 +44,7 @@ int main(int argc, char *argv[])
     generic.add_options()
         ("version,V", "print version and exit")
         ("help,h", "print help message and exit")
+        ("inspect,i", "inspect an image")
         ;
 
     // TODO: Configurable options
@@ -52,7 +53,7 @@ int main(int argc, char *argv[])
         ("verbose,v", po::value<int>()->implicit_value(1),
          "enable verbosity (optionally specify level)")
         ("debug,d",
-         "enable debugging (equivalent to --verbose=1)")
+         "enable debugging (same as --verbose=1)")
         //("optimization", po::value<int>()->default_value(10),
         //"optimization level")
         ("execute,e",
@@ -111,6 +112,10 @@ int main(int argc, char *argv[])
         for (const auto &value : values) {
             execute_commands.push_back(string(value));
         }
+    }
+    if (vm.count("inspect")) {
+        execute_commands.push_back(":inspect");
+        execute_commands.push_back(":quit");
     }
 
     list<string> input_files = {};
