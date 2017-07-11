@@ -101,7 +101,8 @@ private:
     int canvas_counter = 0;
     list<thread> threads = {};
 
-    // callback handler functions
+    // misc handler functions
+    static void waitKeyPress();
     static void onMouseInspection(int, int, int, int, void *);
 
     // command executor functions

@@ -541,13 +541,13 @@ void ImgineContext::execute_show(vector<string> params)
         execute_switch_to(params);
 
     if (active_canvas) {
-        // FIXME: two HighGUI windows can't coexist -- why?
+        // No multiple windows -- don't play well with looping waitKey()
         destroyAllWindows();
         // FIXME: resizable window using CV_WINDOW_NORMAL
         namedWindow(active_canvas->name, WINDOW_AUTOSIZE);
         imshow(active_canvas->name, *(active_canvas->current->mat));
 
-        threads.push_back(thread(waitKey, 0));
+        threads.push_back(thread(waitKeyPress));
 
     } else {
         err("No active canvas.\n");
@@ -564,7 +564,7 @@ void ImgineContext::execute_inspect(vector<string> params)
         execute_switch_to(params);
 
     if (active_canvas) {
-        // FIXME: two HighGUI windows can't coexist -- why?
+        // No multiple windows
         destroyAllWindows();
         // FIXME: resizable window using CV_WINDOW_NORMAL
         namedWindow(active_canvas->name, WINDOW_AUTOSIZE);
@@ -573,12 +573,31 @@ void ImgineContext::execute_inspect(vector<string> params)
         setMouseCallback(active_canvas->name, onMouseInspection, this);
         execute_properties(params);
         cout << string(4, '\n') << flush;
-        waitKey(0);
-        cout << EL(1) << endl;
+        waitKeyPress();
+        cout << EL(1) << endl; // remove color statusline
 
     } else {
         err("No active canvas.\n");
     }
+}
+
+/** Keyboard event handler.
+ */
+void ImgineContext::waitKeyPress()
+{
+    bool is_looping = true;
+    do {
+        int code = waitKey(0);
+
+        if (code == 255 // window close -- make sure the thread halts
+            || code == 27 // ESC
+            )
+            is_looping = false;
+    } while (is_looping);
+
+    // No way to tell which HighGUI window is active, kill them all.
+    // Must call this explicitly, otherwise the window gets hanged.
+    destroyAllWindows();
 }
 
 /** Mouse callback handler for inspection.
