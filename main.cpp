@@ -168,20 +168,20 @@ int main(int argc, char *argv[])
     bool is_console_reading = true;
     while (is_console_reading) {
         int count = 0;
-        const char *line;
+        string text;
         if (execute_commands.empty()) {
-            line = el_gets(el, &count);
+            text = string(el_gets(el, &count));
         } else {
             // Process an --execute command.
-            line = execute_commands.front().c_str();
-            count = execute_commands.front().size();
+            text = execute_commands.front();
+            count = text.size();
             execute_commands.pop_front();
         }
 
         if (count) {
-            history(console_history, &ev, H_ENTER, line); // add to history
+            // Add to history.
+            history(console_history, &ev, H_ENTER, text.c_str());
 
-            string text(line);
             vector<string> tokens;
             try { // shell-like tokenization
                 escaped_list_separator<char> sep("\\", " \t\r\n", "\"'");
