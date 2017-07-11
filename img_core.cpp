@@ -256,6 +256,10 @@ void ImgineContext::execute(vector<string> params)
     } else if (cmd == ":procedure" || cmd == ":proc" || cmd == ":P") {
         execute_procedure(params);
 
+    } else if (cmd == ":Pi") { // shortcut to ":proc then :inspect"
+        execute_procedure(params);
+        execute_inspect({});
+
     } else {
         // TODO: more commands
         err("Unknown command.\n");
