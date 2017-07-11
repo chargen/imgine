@@ -12,6 +12,18 @@ using std::endl;
 
 namespace img_core {
 
+/** Convert a BGR color image to grayscale.
+ *  (y = 0.299 * r + 0.587 * g + 0.114 * b)
+ */
+Mat algo_grayscale(Canvas *src_canvas)
+{
+    // TODO: handle non-BGR images
+
+    Mat dst_mat = src_canvas->current->mat->clone();
+    cvtColor(dst_mat, dst_mat, COLOR_BGR2GRAY);
+    return dst_mat;
+}
+
 /** Color Transfer.
  *  References:
  *    E. Reinhard et al., "Color Transfer between Images". 2001.
@@ -19,7 +31,7 @@ namespace img_core {
  */
 Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas, Colorspace space)
 {
-    // TODO: handle non-CV_8UC3 images
+    // TODO: handle non-CV_8UC3-BGR images
 
     Mat src_mat = src_canvas->current->mat->clone();
     Mat src_s(src_mat, src_canvas->current->roi);
@@ -34,7 +46,7 @@ Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas, Colorspace space
     src_s *= 1. / 255;
     ref_s *= 1. / 255;
 
-    if (space == RGB || space == BGR) {
+    if (space == RGB) {
         cvtColor(src_mat, src_mat, CV_BGR2RGB);
         cvtColor(src_s, src_s, CV_BGR2RGB);
         cvtColor(ref_s, ref_s, CV_BGR2RGB);
@@ -78,7 +90,7 @@ Mat algo_color_transfer(Canvas *src_canvas, Canvas *ref_canvas, Colorspace space
     // merge into a multi-channel matrix
     merge(dst_comp, dst_mat);
 
-    if (space == RGB || space == BGR) {
+    if (space == RGB) {
         cvtColor(dst_mat, dst_mat, CV_RGB2BGR);
     } else if (space == HSV) {
         cvtColor(dst_mat, dst_mat, CV_HSV2BGR);

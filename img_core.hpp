@@ -124,6 +124,7 @@ private:
 };
 
 // experimental procedures
+Mat algo_grayscale(Canvas *);
 Mat algo_color_transfer(Canvas *, Canvas *, Colorspace);
 
 

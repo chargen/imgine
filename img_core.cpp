@@ -749,7 +749,22 @@ void ImgineContext::execute_procedure(vector<string> params)
         string scmd = params.at(1);
         Mat result;
 
-        if (scmd == "color_transfer") {
+        if (scmd == "grayscale") {
+            if (params.size() >= 3) {
+                Canvas *src_canvas = get_canvas_by_name(params.at(2));
+
+                if (src_canvas) {
+                    result = algo_grayscale(src_canvas);
+                } else {
+                    err("Canvas not found.\n");
+                    return;
+                }
+            } else {
+                warn("? :procedure grayscale SRC_CANVAS\n");
+                return;
+            }
+
+        } else if (scmd == "color_transfer") {
             if (params.size() >= 4) {
                 Canvas *src_canvas = get_canvas_by_name(params.at(2));
                 Canvas *ref_canvas = get_canvas_by_name(params.at(3));
