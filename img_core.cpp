@@ -6,7 +6,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
 #include <opencv2/opencv.hpp>
-#include <opencv2/tracking.hpp>
 
 #include <cstdarg>
 #include <thread>
@@ -247,9 +246,6 @@ void ImgineContext::execute(vector<string> params)
 
     } else if (cmd == ":inspect" || cmd == ":i") {
         execute_inspect(params);
-
-    } else if (cmd == ":select" || cmd == ":sel") {
-        execute_select(params);
 
     } else if (cmd == ":statistics" || cmd == ":stat" || cmd == ":st") {
         execute_statistics(params);
@@ -679,27 +675,6 @@ void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *con
     break;
 
     // TODO: EVENT_RBUTTONDOWN EVENT_MBUTTONDOWN
-    }
-}
-
-/** Select:
- *  Open a HighGUI window for selecting ROI in the active canvas.
- */
-void ImgineContext::execute_select(vector<string> params)
-{
-    if (active_canvas) {
-        // FIXME: avoid the buggy selectROI()
-        bool showCrosshair = false;
-        bool fromCenter = false;
-        active_canvas->current->roi =
-            selectROI(active_canvas->name, *(active_canvas->current->mat),
-                      showCrosshair, fromCenter);
-        destroyWindow(active_canvas->name);
-        cout << "  ROI:\t\t" << active_canvas->current->roi << endl;
-        // TODO: ROI out of bounds
-
-    } else {
-        err("No active canvas.\n");
     }
 }
 

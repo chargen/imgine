@@ -117,7 +117,6 @@ private:
     void execute_export(vector<string>);
     void execute_show(vector<string>);
     void execute_inspect(vector<string>);
-    void execute_select(vector<string>);
     void execute_statistics(vector<string>);
     void execute_procedure(vector<string>);
 
