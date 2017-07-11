@@ -533,14 +533,28 @@ void ImgineContext::execute_export(vector<string> params)
 }
 
 /** Show:
- *  Open a HighGUI window displaying the image of the active canvas.
+ *  Opens a HighGUI window displaying the image of the canvas.
  */
 void ImgineContext::execute_show(vector<string> params)
 {
-    if (params.size() >= 2)
-        execute_switch_to(params);
+    if (params.size() >= 2) {
+        for (int i = 1; i < params.size(); i++) {
+            string canvas_name = params.at(i);
+            Canvas *target_canvas = nullptr;
+            for (auto &canvas : canvases) {
+                if (canvas->name == canvas_name) {
+                    target_canvas = canvas;
+                }
+            }
+            if (target_canvas) {
+                namedWindow(target_canvas->name, WINDOW_AUTOSIZE);
+                imshow(target_canvas->name, *(target_canvas->current->mat));
+            }
+        }
 
-    if (active_canvas) {
+        threads.push_back(thread(waitKeyPress));
+
+    } else if (active_canvas) {
         // No multiple windows -- don't play well with looping waitKey()
         destroyAllWindows();
         // FIXME: resizable window using CV_WINDOW_NORMAL
@@ -555,13 +569,13 @@ void ImgineContext::execute_show(vector<string> params)
 }
 
 /** Inspect:
- *  Open a HighGUI window displaying the image of the active canvas.
- *  (Mouse interaction enabled)
+ *  Opens a HighGUI window displaying the image of the canvas.
+ *  (Mouse interaction enabled; switch to it if not active)
  */
 void ImgineContext::execute_inspect(vector<string> params)
 {
     if (params.size() >= 2)
-        execute_switch_to(params);
+        execute_switch_to(params); // switch to the canvas
 
     if (active_canvas) {
         // No multiple windows
