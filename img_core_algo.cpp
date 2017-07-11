@@ -35,6 +35,12 @@ Mat algo_equalize_hist(Canvas *src_canvas, Colorspace space)
         case HSV:
             cvtColor(dst_mat, dst_mat, CV_BGR2HSV);
             break;
+        case HLS:
+            cvtColor(dst_mat, dst_mat, CV_BGR2HLS);
+            break;
+        case YCrCb:
+            cvtColor(dst_mat, dst_mat, CV_BGR2YCrCb);
+            break;
         default: // default: CIELAB
             cvtColor(dst_mat, dst_mat, CV_BGR2Lab);
         }
@@ -49,7 +55,10 @@ Mat algo_equalize_hist(Canvas *src_canvas, Colorspace space)
     case HSV:
         equalizeHist(dst_comp.back(), dst_comp.back()); // V - Value
         break;
-    default: // grayscale or default: CIELAB
+    case HLS:
+        equalizeHist(dst_comp[1], dst_comp[1]); // L - Lightness
+        break;
+    default: // grayscale, YCrCb or default: CIELAB
         equalizeHist(dst_comp[0], dst_comp[0]); // L - Lightness
     }
 
@@ -60,6 +69,12 @@ Mat algo_equalize_hist(Canvas *src_canvas, Colorspace space)
         switch (space) {
         case HSV:
             cvtColor(dst_mat, dst_mat, CV_HSV2BGR);
+            break;
+        case HLS:
+            cvtColor(dst_mat, dst_mat, CV_HLS2BGR);
+            break;
+        case YCrCb:
+            cvtColor(dst_mat, dst_mat, CV_YCrCb2BGR);
             break;
         default: // default: CIELAB
             cvtColor(dst_mat, dst_mat, CV_Lab2BGR);

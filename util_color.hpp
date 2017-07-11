@@ -13,7 +13,7 @@ using std::string;
 namespace util_color {
 
 enum Colorspace {
-    RGB, BGR, HSV, CIEXYZ, CIELAB, LMS, Ruderman_lab
+    RGB, BGR, HSV, HLS, YCrCb, CIEXYZ, CIELAB, LMS, Ruderman_lab
 };
 
 const std::unordered_map<string, Colorspace>
@@ -21,7 +21,9 @@ COLORSPACE_STRINGS = {
     {"RGB", RGB},
     {"BGR", BGR},
     {"HSV", HSV},
-    {"CIEXYZ", CIEXYZ},
+    {"HLS", HLS}, {"HSL", HLS},
+    {"YCrCb", YCrCb}, {"YCbCr", YCrCb},
+    {"CIEXYZ", CIEXYZ}, {"XYZ", CIEXYZ},
     {"CIELAB", CIELAB},
     {"LMS", LMS},
     {"Ruderman_lab", Ruderman_lab}
