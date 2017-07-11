@@ -583,16 +583,21 @@ void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *con
     Mat *mat = image_context->active_canvas->current->mat;
     Rect2d *roi = &image_context->active_canvas->current->roi;
 
+    // Bounded position.
+    x = min(mat->cols, max(0, x));
+    y = min(mat->rows, max(0, y));
+
     switch (ev) {
     case EVENT_MOUSEMOVE:
     {
         cout << CPL(4);
         if (image_context->state.is_dragging) {
+            int topleft_x = min(x, image_context->state.dragging_start_x);
+            int topleft_y = min(y, image_context->state.dragging_start_y);
             int w = abs(x - image_context->state.dragging_start_x) + 1;
             int h = abs(y - image_context->state.dragging_start_y) + 1;
-            *roi = Rect2d(min(x, image_context->state.dragging_start_x),
-                          min(y, image_context->state.dragging_start_y),
-                          w, h);
+
+            *roi = Rect2d(topleft_x, topleft_y, w, h);
             cout << CPL(1) EL(1) << "  ROI:\t\t"
                  << *roi << string(12, ' ') << endl;
 
