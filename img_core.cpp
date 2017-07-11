@@ -139,6 +139,9 @@ void ImgineContext::new_canvas()
  */
 Canvas *ImgineContext::get_canvas_by_name(string canvas_name)
 {
+    if (canvas_name == "@")
+        return active_canvas;
+
     for (auto &canvas : canvases) {
         if (canvas->name == canvas_name) {
             return canvas;
@@ -276,7 +279,7 @@ void ImgineContext::execute_list(vector<string> params)
         if (scmd == "canvases" || scmd == "c") {
             for (const auto &canvas : canvases) {
                 cout << (active_canvas && active_canvas->id == canvas->id ?
-                         "* " : "  ") << canvas->name << "\t";
+                         "@ " : "  ") << canvas->name << "\t";
                 cout << "[" << canvas->cols << " x " << canvas->rows << "] ";
                 int channels = get<0>(IMG_CV_TYPES.at(canvas->cv_type));
                 int depth = get<1>(IMG_CV_TYPES.at(canvas->cv_type));
@@ -382,7 +385,7 @@ void ImgineContext::execute_rename(vector<string> params)
     if (params.size() == 2) {
         string canvas_name = params.at(1);
 
-        // TODO: disallow duplicate names!
+        // TODO: disallow duplicate names and "@"!
         if (active_canvas) {
             active_canvas->name = canvas_name;
             cout << "  Canvas name:\t" << canvas_name << endl;
