@@ -767,6 +767,29 @@ void ImgineContext::execute_procedure(vector<string> params)
                 return;
             }
 
+        } else if (scmd == "equalize_hist") {
+            if (params.size() >= 3) {
+                Canvas *src_canvas = get_canvas_by_name(params.at(2));
+                Colorspace space = CIELAB;
+                if (params.size() >= 4)
+                    try {
+                        space = COLORSPACE_STRINGS.at(params.at(3));
+                    } catch (const std::out_of_range &e) {
+                        err("Unknown colorspace.\n");
+                        return;
+                    }
+
+                if (src_canvas) {
+                    result = algo_equalize_hist(src_canvas, space);
+                } else {
+                    err("Canvas not found.\n");
+                    return;
+                }
+            } else {
+                warn("? :procedure equalize_hist SRC_CANVAS [COLORSPACE]\n");
+                return;
+            }
+
         } else if (scmd == "color_transfer") {
             if (params.size() >= 4) {
                 Canvas *src_canvas = get_canvas_by_name(params.at(2));

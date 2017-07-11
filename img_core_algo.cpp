@@ -24,6 +24,51 @@ Mat algo_grayscale(Canvas *src_canvas)
     return dst_mat;
 }
 
+/** Histogram Equalization.
+ */
+Mat algo_equalize_hist(Canvas *src_canvas, Colorspace space)
+{
+    Mat dst_mat = src_canvas->current->mat->clone();
+
+    if (dst_mat.channels() >= 3) {
+        switch (space) {
+        case HSV:
+            cvtColor(dst_mat, dst_mat, CV_BGR2HSV);
+            break;
+        default: // default: CIELAB
+            cvtColor(dst_mat, dst_mat, CV_BGR2Lab);
+        }
+    }
+
+    // split image into single-channel matrices
+    vector<Mat> dst_comp;
+    split(dst_mat, dst_comp);
+
+    // equalize the relevant component of histogram
+    switch (space) {
+    case HSV:
+        equalizeHist(dst_comp.back(), dst_comp.back()); // V - Value
+        break;
+    default: // grayscale or default: CIELAB
+        equalizeHist(dst_comp[0], dst_comp[0]); // L - Lightness
+    }
+
+    // merge into a multi-channel matrix
+    merge(dst_comp, dst_mat);
+
+    if (dst_mat.channels() >= 3) {
+        switch (space) {
+        case HSV:
+            cvtColor(dst_mat, dst_mat, CV_HSV2BGR);
+            break;
+        default: // default: CIELAB
+            cvtColor(dst_mat, dst_mat, CV_Lab2BGR);
+        }
+    }
+
+    return dst_mat;
+}
+
 /** Color Transfer.
  *  References:
  *    E. Reinhard et al., "Color Transfer between Images". 2001.
