@@ -537,6 +537,9 @@ void ImgineContext::execute_export(vector<string> params)
  */
 void ImgineContext::execute_show(vector<string> params)
 {
+    if (params.size() >= 2)
+        execute_switch_to(params);
+
     if (active_canvas) {
         // FIXME: two HighGUI windows can't coexist -- why?
         destroyAllWindows();
@@ -557,6 +560,9 @@ void ImgineContext::execute_show(vector<string> params)
  */
 void ImgineContext::execute_inspect(vector<string> params)
 {
+    if (params.size() >= 2)
+        execute_switch_to(params);
+
     if (active_canvas) {
         // FIXME: two HighGUI windows can't coexist -- why?
         destroyAllWindows();
