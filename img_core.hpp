@@ -73,6 +73,11 @@ public:
         int console_columns = 80;
         int verbosity = 0;
     } config;
+    struct {
+        bool is_dragging = false;
+        int dragging_start_x = 0;
+        int dragging_start_y = 0;
+    } state;
     Canvas *active_canvas = nullptr;
     list<Canvas *> canvases = {};
 

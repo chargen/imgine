@@ -557,7 +557,7 @@ void ImgineContext::execute_show(vector<string> params)
 
 /** Inspect:
  *  Open a HighGUI window displaying the image of the active canvas.
- *  (Mouse inspection enabled)
+ *  (Mouse interaction enabled)
  */
 void ImgineContext::execute_inspect(vector<string> params)
 {
@@ -570,7 +570,7 @@ void ImgineContext::execute_inspect(vector<string> params)
 
         setMouseCallback(active_canvas->name, onMouseInspection, this);
         execute_properties(params);
-        cout << string(5, '\n') << flush;
+        cout << string(4, '\n') << flush;
         waitKey(0);
         cout << EL(1) << endl;
 
@@ -583,50 +583,103 @@ void ImgineContext::execute_inspect(vector<string> params)
  */
 void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *context)
 {
-    // TODO: EVENT_MOUSEMOVE EVENT_LBUTTONDOWN EVENT_RBUTTONDOWN EVENT_MBUTTONDOWN
     ImgineContext *image_context = (ImgineContext *)context;
     Mat *mat = image_context->active_canvas->current->mat;
+    Rect2d *roi = &image_context->active_canvas->current->roi;
 
-    cout << CPL(4);
+    switch (ev) {
+    case EVENT_MOUSEMOVE:
+    {
+        cout << CPL(4);
+        if (image_context->state.is_dragging) {
+            int w = abs(x - image_context->state.dragging_start_x) + 1;
+            int h = abs(y - image_context->state.dragging_start_y) + 1;
+            *roi = Rect2d(min(x, image_context->state.dragging_start_x),
+                          min(y, image_context->state.dragging_start_y),
+                          w, h);
+            cout << CPL(1) EL(1) << "  ROI:\t\t"
+                 << *roi << string(12, ' ') << endl;
 
-    cout << "  Pixel:\t"
-         << "(" << x << ", " << y << ")" << string(6, ' ') << endl;
+            Mat masked_mat = mat->clone();
+            rectangle(masked_mat, *roi, Scalar(0, 0, 255), 1);
+            imshow(image_context->active_canvas->name, masked_mat);
+        }
 
-    unsigned char r, g, b, a = 255;
-    if (mat->type() == CV_8UC1) {
-        Vec<uchar, 1> pixel = mat->at<uchar>(y, x);
-        b = g = r = pixel.val[0];
+        cout << "  Pixel:\t"
+             << "(" << x << ", " << y << ")" << string(6, ' ') << endl;
 
-        cout << "  Value (gray):\t"
-             << pixel << string(12, ' ') << endl;
+        unsigned char r, g, b, a = 255;
+        if (mat->type() == CV_8UC1) {
+            Vec<uchar, 1> pixel = mat->at<uchar>(y, x);
+            b = g = r = pixel.val[0];
 
-    } else if (mat->type() == CV_8UC3) {
-        Vec3b pixel = mat->at<Vec3b>(y, x);
-        b = pixel.val[0];
-        g = pixel.val[1];
-        r = pixel.val[2];
+            cout << "  Value (gray):\t"
+                 << pixel << string(12, ' ') << endl;
 
-        cout << "  Value (BGR):\t"
-             << pixel << string(12, ' ') << endl;
+        } else if (mat->type() == CV_8UC2) {
+            Vec2b pixel = mat->at<Vec2b>(y, x);
+            b = g = r = pixel.val[0];
+            a = pixel.val[1];
 
-    } else if (mat->type() == CV_8UC4) {
-        Vec4b pixel = mat->at<Vec4b>(y, x);
-        b = pixel.val[0];
-        g = pixel.val[1];
-        r = pixel.val[2];
-        a = pixel.val[3];
+            cout << "  Value (gray):\t"
+                 << pixel << string(12, ' ') << endl;
 
-        cout << "  Value (BGRA):\t"
-             << pixel << string(12, ' ') << endl;
+        } else if (mat->type() == CV_8UC3) {
+            Vec3b pixel = mat->at<Vec3b>(y, x);
+            b = pixel.val[0];
+            g = pixel.val[1];
+            r = pixel.val[2];
 
+            cout << "  Value (BGR):\t"
+                 << pixel << string(12, ' ') << endl;
+
+        } else { // CV_8UC4
+            Vec4b pixel = mat->at<Vec4b>(y, x);
+            b = pixel.val[0];
+            g = pixel.val[1];
+            r = pixel.val[2];
+            a = pixel.val[3];
+
+            cout << "  Value (BGRA):\t"
+                 << pixel << string(12, ' ') << endl;
+
+        }
+        cout << "  RGB hex:\t" << rgb_to_hex(r, g, b) << endl;
+        cout << "  Opacity:\t" << alpha_to_opacity(a) << endl;
+
+        if (image_context->config.is_console_truecolor)
+            cout << sgr_background_rgb(r, g, b,
+                                       string(image_context->config.console_columns, ' '))
+                 << flush;
     }
-    cout << "  RGB hex:\t" << rgb_to_hex(r, g, b) << endl;
-    cout << "  Opacity:\t" << alpha_to_opacity(a) << endl;
+    break;
 
-    if (image_context->config.is_console_truecolor)
-        cout << sgr_background_rgb(r, g, b,
-                                   string(image_context->config.console_columns, ' '))
-             << flush;
+    case EVENT_LBUTTONDOWN:
+    {
+        if (!image_context->state.is_dragging) {
+            image_context->state.is_dragging = true;
+            image_context->state.dragging_start_x = x;
+            image_context->state.dragging_start_y = y;
+            *roi = Rect2d(0, 0,
+                          image_context->active_canvas->cols,
+                          image_context->active_canvas->rows);
+            cout << CPL(5) EL(1) << "  ROI:\t\t"
+                 << *roi << string(12, ' ') << string(5, '\n') << flush;
+            imshow(image_context->active_canvas->name, *mat);
+        }
+    }
+    break;
+
+    case EVENT_LBUTTONUP:
+    {
+        if (image_context->state.is_dragging) {
+            image_context->state.is_dragging = false;
+        }
+    }
+    break;
+
+    // TODO: EVENT_RBUTTONDOWN EVENT_MBUTTONDOWN
+    }
 }
 
 /** Select:
