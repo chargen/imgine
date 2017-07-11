@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     po::options_description config("Configurable");
     config.add_options()
         ("verbose,v", po::value<int>()->implicit_value(1),
-         "enable verbosity (optionally specify level)")
+         "specify verbosity level")
         ("debug,d",
          "enable debugging (same as --verbose=1)")
         //("optimization", po::value<int>()->default_value(10),
@@ -59,6 +59,9 @@ int main(int argc, char *argv[])
         ("execute,e",
          po::value< vector<string> >()->composing(),
          "execute command on startup")
+        ("execute-and-quit,E",
+         po::value< vector<string> >()->composing(),
+         "execute command and quit")
         ;
 
     // TODO: Hidden options
@@ -107,16 +110,26 @@ int main(int argc, char *argv[])
     //}
 
     list<string> execute_commands = {};
+    bool is_quitting = false;
     if (vm.count("execute")) {
         vector<string> values = vm["execute"].as< vector<string> >();
         for (const auto &value : values) {
             execute_commands.push_back(string(value));
         }
     }
+    if (vm.count("execute-and-quit")) {
+        vector<string> values = vm["execute-and-quit"].as< vector<string> >();
+        for (const auto &value : values) {
+            execute_commands.push_back(string(value));
+        }
+        is_quitting = true;
+    }
     if (vm.count("inspect")) {
         execute_commands.push_back(":inspect");
-        execute_commands.push_back(":quit");
+        is_quitting = true;
     }
+    if (is_quitting)
+        execute_commands.push_back(":quit");
 
     list<string> input_files = {};
     if (vm.count("input-file")) {
