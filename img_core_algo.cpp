@@ -13,14 +13,15 @@ using std::endl;
 namespace img_core {
 
 /** Convert a BGR color image to grayscale.
- *  (y = 0.299 * r + 0.587 * g + 0.114 * b)
+ *  (OpenCV uses Rec. 601 luma: y = 0.299 * r + 0.587 * g + 0.114 * b)
  */
 Mat algo_grayscale(Canvas *src_canvas)
 {
-    // TODO: handle non-BGR images
-
     Mat dst_mat = src_canvas->current->mat->clone();
-    cvtColor(dst_mat, dst_mat, COLOR_BGR2GRAY);
+
+    if (dst_mat.channels() >= 3)
+        cvtColor(dst_mat, dst_mat, COLOR_BGR2GRAY);
+
     return dst_mat;
 }
 
