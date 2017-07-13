@@ -230,12 +230,6 @@ void ImgineContext::execute(vector<string> params)
     } else if (cmd == ":rename" || cmd == ":ren") {
         execute_rename(params);
 
-    } else if (cmd == ":properties" || cmd == ":prop" || cmd == ":p") {
-        execute_properties(params);
-
-    } else if (cmd == ":dump") {
-        execute_dump(params);
-
     } else if (cmd == ":import" ||
                cmd == ":read" || cmd == ":r") {
         execute_import(params);
@@ -244,26 +238,341 @@ void ImgineContext::execute(vector<string> params)
                cmd == ":write" || cmd == ":w") {
         execute_export(params);
 
-    } else if (cmd == ":show") {
-        execute_show(params);
+    } else if (cmd == ":properties" || cmd == ":prop" || cmd == ":p") {
+        execute_properties(params);
 
-    } else if (cmd == ":inspect" || cmd == ":i") {
-        execute_inspect(params);
+    } else if (cmd == ":roi") {
+        execute_roi(params);
+
+    } else if (cmd == ":dump") {
+        execute_dump(params);
+
+    } else if (cmd == ":dump_roi") {
+        execute_dump_roi(params);
 
     } else if (cmd == ":statistics" || cmd == ":stat" || cmd == ":st") {
         execute_statistics(params);
+
+    } else if (cmd == ":show" || cmd == ":sh") {
+        execute_show(params);
+
+    } else if (cmd == ":histogram" || cmd == ":hist" || cmd == ":hi") {
+        execute_histogram(params);
+
+    } else if (cmd == ":inspect" || cmd == ":i") {
+        execute_inspect(params, false);
+
+    } else if (cmd == ":inspect_histogram" || cmd == ":inspect_hist" ||
+               cmd == ":I") {
+        execute_inspect(params, true);
 
     } else if (cmd == ":procedure" || cmd == ":proc" || cmd == ":P") {
         execute_procedure(params);
 
     } else if (cmd == ":Pi") { // shortcut to ":proc then :inspect"
         execute_procedure(params);
-        execute_inspect({});
+        execute_inspect({}, false);
+
+    } else if (cmd == ":PI") { // shortcut to ":proc then :inspect_hist"
+        execute_procedure(params);
+        execute_inspect({}, true);
 
     } else {
         // TODO: more commands
         err("Unknown command.\n");
     }
+}
+
+/** Return a string list presenting the image properties of the canvas.
+ */
+vector<string> ImgineContext::show_properties(Canvas *canvas)
+{
+    vector<string> ret;
+    int bitdepth = get<1>(IMG_CV_TYPES.at(canvas->cv_type));
+    int channels = get<0>(IMG_CV_TYPES.at(canvas->cv_type));
+    string channel_type;
+    switch (channels) {
+    case 4: channel_type = "RGBA"; break;
+    case 3: channel_type = "RGB"; break;
+    default: channel_type = "monochrome";
+    }
+    int kib = canvas->cols * canvas->rows * channels * bitdepth / 8 / 1024;
+    int mib = kib / 1024;
+
+    ret.push_back("  Canvas name:\t" + canvas->name);
+    ret.push_back("  Canvas size:\t[" + to_string(canvas->cols) + " x " +
+                  to_string(canvas->rows) + "]");
+    ret.push_back("  Channels:\t" + to_string(channels) + " (" +
+                  channel_type + ")");
+    ret.push_back("  Color depth:\t" + to_string(bitdepth) + " bpc");
+    ret.push_back("  Memory size:\t" +
+                  (mib ? to_string(mib) + " MiB" : to_string(kib) + " KiB"));
+
+    return ret;
+}
+
+/** Return a string list presenting some basic statistics of the matrix.
+ */
+vector<string> ImgineContext::show_statistics(Mat *mat)
+{
+    vector<string> ret;
+    stringstream mat_mean_buf, mat_stddev_buf;
+    Scalar mat_mean, mat_stddev;
+    meanStdDev(*mat, mat_mean, mat_stddev);
+    mat_mean_buf << mat_mean;
+    mat_stddev_buf << mat_stddev;
+
+    unsigned char r, g, b;
+    if (mat->channels() >= 3) {
+        b = mat_mean.val[0];
+        g = mat_mean.val[1];
+        r = mat_mean.val[2];
+    } else {
+        b = g = r = mat_mean.val[0];
+    }
+
+    ret.push_back("  Mean:\t\t" + mat_mean_buf.str());
+    ret.push_back("  Mean RGB:\t" + rgb_to_hex(r, g, b));
+    ret.push_back("  Std Dev:\t" + mat_stddev_buf.str());
+
+    return ret;
+}
+
+/** Return a string list presenting a pixel value in the matrix.
+ *  The last element is a "color-line" for visual color preview.
+ */
+vector<string> ImgineContext::show_pixel(Mat *mat, int x, int y)
+{
+    vector<string> ret;
+    stringstream pixel_buf;
+    unsigned char r, g, b, a = 255;
+    if (mat->type() == CV_8UC4) {
+        Vec4b pixel = mat->at<Vec4b>(y, x);
+        b = pixel.val[0];
+        g = pixel.val[1];
+        r = pixel.val[2];
+        a = pixel.val[3]; // has alpha channel
+        pixel_buf << pixel;
+    } else if (mat->type() == CV_8UC3) {
+        Vec3b pixel = mat->at<Vec3b>(y, x);
+        b = pixel.val[0];
+        g = pixel.val[1];
+        r = pixel.val[2];
+        pixel_buf << pixel;
+    } else if (mat->type() == CV_8UC2) {
+        Vec2b pixel = mat->at<Vec2b>(y, x);
+        b = g = r = pixel.val[0];
+        a = pixel.val[1]; // has alpha channel
+        pixel_buf << pixel;
+    } else { // default: CV_8UC1
+        Vec<uchar, 1> pixel = mat->at<uchar>(y, x);
+        b = g = r = pixel.val[0];
+        pixel_buf << pixel;
+    }
+
+    ret.push_back("  Pixel:\t(" + to_string(x) + string(", ") +
+                  to_string(y) + string(")"));
+    ret.push_back("  Value:\t" + pixel_buf.str());
+    ret.push_back("  RGB hex:\t" + rgb_to_hex(r, g, b));
+    ret.push_back("  Opacity:\t" + alpha_to_opacity_percentage(a));
+
+    // color-line
+    if (config.is_console_truecolor) {
+        string full_line = string(config.console_columns, ' ');
+        ret.push_back(sgr_background_rgb(r, g, b, full_line));
+    } else { // no true-color, omit
+        ret.push_back("");
+    }
+
+    return ret;
+}
+
+/** Return a histogram image of the matrix.
+ */
+Mat ImgineContext::draw_histogram(Mat *mat)
+{
+    Mat src_mat = mat->clone();
+
+    // histogram display colors
+    Scalar b, g, r;
+    if (src_mat.channels() == 1) {
+        // handle grayscale images
+        cvtColor(src_mat, src_mat, COLOR_GRAY2BGR);
+        b = g = r = Scalar(255, 255, 255);
+    } else {
+        b = Scalar(255, 0, 0);
+        g = Scalar(0, 255, 0);
+        r = Scalar(0, 0, 255);
+    }
+
+    // split images into single-channel matrices
+    vector<Mat> src_comp;
+    split(src_mat, src_comp);
+
+    // calculate the histogram per channel
+    Mat b_hist, g_hist, r_hist;
+    int hist_size = 256;
+    float range[] = {0, 256};
+    const float *hist_range = {range};
+    bool uniform = true, accumulate = false;
+    calcHist(&src_comp[0], 1, 0, Mat(),
+             b_hist, 1, &hist_size, &hist_range, uniform, accumulate);
+    calcHist(&src_comp[1], 1, 0, Mat(),
+             g_hist, 1, &hist_size, &hist_range, uniform, accumulate);
+    calcHist(&src_comp[2], 1, 0, Mat(),
+             r_hist, 1, &hist_size, &hist_range, uniform, accumulate);
+
+    // normalize the histogram per channel
+    int hist_w = 512, hist_h = 256;
+    int bin_w = cvRound((double)hist_w / hist_size);
+    Mat hist_image(hist_h, hist_w, CV_8UC3, Scalar(0, 0, 0));
+    normalize(b_hist, b_hist, 0, hist_image.rows, NORM_MINMAX, -1, Mat());
+    normalize(g_hist, g_hist, 0, hist_image.rows, NORM_MINMAX, -1, Mat());
+    normalize(r_hist, r_hist, 0, hist_image.rows, NORM_MINMAX, -1, Mat());
+
+    // draw the histogram image
+    for (int i = 1; i < hist_size; i++) {
+        line(hist_image,
+             Point(bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1))),
+             Point(bin_w*(i), hist_h - cvRound(b_hist.at<float>(i))),
+             b, 2, 8, 0);
+        line(hist_image,
+             Point(bin_w*(i-1), hist_h - cvRound(g_hist.at<float>(i-1))),
+             Point(bin_w*(i), hist_h - cvRound(g_hist.at<float>(i))),
+             g, 2, 8, 0);
+        line(hist_image,
+             Point(bin_w*(i-1), hist_h - cvRound(r_hist.at<float>(i-1))),
+             Point(bin_w*(i), hist_h - cvRound(r_hist.at<float>(i))),
+             r, 2, 8, 0);
+    }
+    return hist_image;
+}
+
+/** Keyboard event handler (blocking).
+ */
+void ImgineContext::wait_key_press(ImgineContext *context)
+{
+    bool is_looping = true;
+    do {
+        int code = waitKey(0);
+
+        if (code == 255 // window close -- make sure the thread halts
+            || code == 27 // ESC
+            )
+            is_looping = false;
+    } while (is_looping);
+
+    // Must call this explicitly, otherwise windows would hang.
+    destroyAllWindows();
+
+    context->state.is_gui_on = false;
+    context->debug("All windows closed. GUI off.\n");
+}
+
+/** Mouse event handler (callback).
+ */
+void ImgineContext::on_mouse_event(int ev, int x, int y, int flags, void *c)
+{
+    ImgineContext *context = (ImgineContext *)c;
+    Mat *mat = context->active_canvas->current->mat;
+    Rect2d *roi = &context->active_canvas->current->roi;
+
+    // Limit position to canvas area.
+    x = min(mat->cols - 1, max(0, x));
+    y = min(mat->rows - 1, max(0, y));
+
+    switch (ev) {
+    case EVENT_MOUSEMOVE:
+    {
+        vector<string> s_pixel = context->show_pixel(mat, x, y);
+        cout << cpl(s_pixel.size() - 1); // no newline after color-line
+
+        if (context->state.is_dragging) {
+            int topleft_x = min(x, context->state.dragging_start_x);
+            int topleft_y = min(y, context->state.dragging_start_y);
+            int w = abs(x - context->state.dragging_start_x) + 1;
+            int h = abs(y - context->state.dragging_start_y) + 1;
+            *roi = Rect2d(topleft_x, topleft_y, w, h);
+
+            Mat masked_mat = mat->clone();
+            rectangle(masked_mat, *roi, Scalar(0, 0, 255), 1);
+            imshow(context->active_canvas->name, masked_mat);
+
+            Mat roi_mat(*mat, *roi);
+            if (context->state.is_histogram_enabled) {
+                Mat hist_image = context->draw_histogram(&roi_mat);
+                imshow(get_histogram_name(context->active_canvas->name),
+                       hist_image);
+            }
+
+            vector<string> s_statistics = context->show_statistics(&roi_mat);
+            cout << cpl(s_statistics.size() + 1);
+
+            cout << el(0) << "  Current ROI:\t" << *roi << endl;
+            for (string &line : s_statistics)
+                cout << el(0) << line << endl;
+        }
+
+        for (int i = 0; i < s_pixel.size() - 1; i++)
+            cout << el(0) << s_pixel[i] << endl;
+        cout << el(0) << s_pixel.back() << flush; // color-line
+    }
+    break;
+
+    case EVENT_LBUTTONDOWN:
+    {
+        if (!context->state.is_dragging) {
+            vector<string> s_pixel = context->show_pixel(mat, x, y);
+            cout << cpl(s_pixel.size() - 1); // no newline after color-line
+
+            context->state.is_dragging = true;
+            context->state.dragging_start_x = x;
+            context->state.dragging_start_y = y;
+
+            // Reset ROI selection.
+            *roi = Rect2d(0, 0, context->active_canvas->cols,
+                          context->active_canvas->rows);
+
+            imshow(context->active_canvas->name, *mat);
+
+            Mat roi_mat(*mat, *roi);
+            if (context->state.is_histogram_enabled) {
+                Mat hist_image = context->draw_histogram(&roi_mat);
+                imshow(get_histogram_name(context->active_canvas->name),
+                       hist_image);
+            }
+
+            vector<string> s_statistics = context->show_statistics(&roi_mat);
+            cout << cpl(s_statistics.size() + 1);
+
+            cout << el(0) << "  Current ROI:\t" << *roi << endl;
+            for (string &line : s_statistics)
+                cout << el(0) << line << endl;
+
+            for (int i = 0; i < s_pixel.size() - 1; i++)
+                cout << el(0) << s_pixel[i] << endl;
+            cout << el(0) << s_pixel.back() << flush; // color-line
+        }
+    }
+    break;
+
+    case EVENT_LBUTTONUP:
+    {
+        if (context->state.is_dragging) { // finish ROI selection
+            context->state.is_dragging = false;
+        }
+    }
+    break;
+
+    // TODO: EVENT_RBUTTONDOWN EVENT_MBUTTONDOWN
+    }
+}
+
+/**
+ */
+string ImgineContext::get_histogram_name(string canvas_name)
+{
+    return canvas_name + " (ROI histogram)";
 }
 
 /** Status:
@@ -401,49 +710,15 @@ void ImgineContext::execute_rename(vector<string> params)
     }
 }
 
-/** Properties:
- *  Prints the basic information of the active canvas.
- */
-void ImgineContext::execute_properties(vector<string> params)
-{
-    if (active_canvas) {
-        cout << "  Canvas name:\t" << active_canvas->name << endl;
-        cout << "  Canvas size:\t[" << active_canvas->cols << " x "
-             << active_canvas->rows << "]" << endl;
-        int channels = get<0>(IMG_CV_TYPES.at(active_canvas->cv_type));
-        int depth = get<1>(IMG_CV_TYPES.at(active_canvas->cv_type));
-        cout << "  Channels:\t" << channels << endl;
-        cout << "  Color depth:\t" << depth << " bpc" << endl;
-
-        cout << "  ROI:\t\t" << active_canvas->current->roi << endl;
-
-    } else {
-        err("No active canvas.\n");
-    }
-}
-
-/** Dump:
- *  Prints the actual matrix of the active canvas.
- */
-void ImgineContext::execute_dump(vector<string> params)
-{
-    if (active_canvas) {
-        cout << format(*(active_canvas->current->mat), Formatter::FMT_PYTHON)
-             << endl;
-    } else {
-        err("No active canvas.\n");
-    }
-}
-
 /** Import:
  *  Imports an image from a file into a new canvas.
  */
 void ImgineContext::execute_import(vector<string> params)
 {
-    if (params.size() >= 2) {
+    if (params.size() > 1) {
         string file_name = params.at(1);
         int cv_flag = -1; // default: load image as is, incl. alpha channel
-        if (params.size() >= 3) {
+        if (params.size() > 2) {
             int channels = 0;
             stringstream(params.at(2)) >> channels;
             if (channels == 4) {
@@ -487,10 +762,10 @@ void ImgineContext::execute_import(vector<string> params)
  */
 void ImgineContext::execute_export(vector<string> params)
 {
-    if (params.size() >= 2) {
+    if (params.size() > 1) {
         string file_name = params.at(1);
         vector<int> cv_params = {};
-        if (params.size() >= 3) {
+        if (params.size() > 2) {
             int param_key, param_val;
             const char *temp = params.at(2).c_str();
             try {
@@ -539,209 +814,280 @@ void ImgineContext::execute_export(vector<string> params)
     }
 }
 
+/** Properties:
+ *  Prints the image properties of the canvas.
+ */
+void ImgineContext::execute_properties(vector<string> params)
+{
+    if (params.size() > 1) {
+        for (int i = 1; i < params.size(); i++) {
+            string canvas_name = params.at(i);
+            Canvas *target_canvas;
+            target_canvas = get_canvas_by_name(canvas_name);
+            if (target_canvas) {
+                for (string &line : show_properties(target_canvas))
+                    cout << line << endl;
+            } else {
+                err("Canvas not found: %s\n", canvas_name.c_str());
+            }
+        }
+    } else if (active_canvas) {
+        for (string &line : show_properties(active_canvas))
+            cout << line << endl;
+    } else {
+        err("No active canvas.\n");
+    }
+}
+
+/** ROI:
+ *  Prints the selected ROI (Region of Interest) of the canvas.
+ */
+void ImgineContext::execute_roi(vector<string> params)
+{
+    if (params.size() > 1) {
+        for (int i = 1; i < params.size(); i++) {
+            string canvas_name = params.at(i);
+            Canvas *target_canvas;
+            target_canvas = get_canvas_by_name(canvas_name);
+            if (target_canvas) {
+                cout << "  Current ROI:\t" << target_canvas->current->roi
+                     << endl;
+            } else {
+                err("Canvas not found: %s\n", canvas_name.c_str());
+            }
+        }
+    } else if (active_canvas) {
+        cout << "  Current ROI:\t" << active_canvas->current->roi
+             << endl;
+    } else {
+        err("No active canvas.\n");
+    }
+}
+
+/** Dump:
+ *  Prints the data matrix of the canvas.
+ */
+void ImgineContext::execute_dump(vector<string> params)
+{
+    if (params.size() > 1) {
+        for (int i = 1; i < params.size(); i++) {
+            string canvas_name = params.at(i);
+            Canvas *target_canvas;
+            target_canvas = get_canvas_by_name(canvas_name);
+            if (target_canvas) {
+                cout << format(*(target_canvas->current->mat),
+                               Formatter::FMT_PYTHON) << endl;
+            } else {
+                err("Canvas not found: %s\n", canvas_name.c_str());
+            }
+        }
+    } else if (active_canvas) {
+        cout << format(*(active_canvas->current->mat),
+                       Formatter::FMT_PYTHON) << endl;
+    } else {
+        err("No active canvas.\n");
+    }
+}
+
+/** Dump ROI:
+ *  Prints the data matrix of the selected ROI of the canvas.
+ */
+void ImgineContext::execute_dump_roi(vector<string> params)
+{
+    if (params.size() > 1) {
+        for (int i = 1; i < params.size(); i++) {
+            string canvas_name = params.at(i);
+            Canvas *target_canvas;
+            target_canvas = get_canvas_by_name(canvas_name);
+            if (target_canvas) {
+                Mat roi(*(target_canvas->current->mat),
+                        target_canvas->current->roi);
+                cout << format(roi, Formatter::FMT_PYTHON) << endl;
+            } else {
+                err("Canvas not found: %s\n", canvas_name.c_str());
+            }
+        }
+    } else if (active_canvas) {
+        Mat roi(*(active_canvas->current->mat),
+                active_canvas->current->roi);
+        cout << format(roi, Formatter::FMT_PYTHON) << endl;
+    } else {
+        err("No active canvas.\n");
+    }
+}
+
+/** Statistics:
+ *  Prints some basic statistics of the selected ROI of the canvas.
+ */
+void ImgineContext::execute_statistics(vector<string> params)
+{
+    if (params.size() > 1) {
+        for (int i = 1; i < params.size(); i++) {
+            string canvas_name = params.at(i);
+            Canvas *target_canvas;
+            target_canvas = get_canvas_by_name(canvas_name);
+            if (target_canvas) {
+                cout << "  Current ROI:\t" << target_canvas->current->roi
+                     << endl;
+
+                Mat roi(*(target_canvas->current->mat),
+                        target_canvas->current->roi);
+                for (string &line : show_statistics(&roi))
+                    cout << line << endl;
+            } else {
+                err("Canvas not found: %s\n", canvas_name.c_str());
+            }
+        }
+    } else if (active_canvas) {
+        cout << "  Current ROI:\t" << active_canvas->current->roi
+             << endl;
+
+        Mat roi(*(active_canvas->current->mat),
+                active_canvas->current->roi);
+        for (string &line : show_statistics(&roi))
+            cout << line << endl;
+    } else {
+        err("No active canvas.\n");
+    }
+}
+
 /** Show:
  *  Opens a HighGUI window displaying the image of the canvas.
  */
 void ImgineContext::execute_show(vector<string> params)
 {
-    if (params.size() >= 2) {
+    // No multiple windows -- buggy!
+    destroyAllWindows();
+
+    if (params.size() > 1) {
         for (int i = 1; i < params.size(); i++) {
             string canvas_name = params.at(i);
-            Canvas *target_canvas = nullptr;
-            for (auto &canvas : canvases) {
-                if (canvas->name == canvas_name) {
-                    target_canvas = canvas;
-                }
-            }
+            Canvas *target_canvas;
+            target_canvas = get_canvas_by_name(canvas_name);
             if (target_canvas) {
+                // FIXME: resizable window using CV_WINDOW_NORMAL
                 namedWindow(target_canvas->name, WINDOW_AUTOSIZE);
                 imshow(target_canvas->name, *(target_canvas->current->mat));
+            } else {
+                err("Canvas not found: %s\n", canvas_name.c_str());
             }
         }
 
-        threads.push_back(thread(waitKeyPress));
-
+        if (!state.is_gui_on) {
+            state.is_gui_on = true;
+            threads.push_back(thread(wait_key_press, this));
+        }
     } else if (active_canvas) {
-        // No multiple windows -- don't play well with looping waitKey()
-        destroyAllWindows();
         // FIXME: resizable window using CV_WINDOW_NORMAL
         namedWindow(active_canvas->name, WINDOW_AUTOSIZE);
         imshow(active_canvas->name, *(active_canvas->current->mat));
 
-        threads.push_back(thread(waitKeyPress));
+        if (!state.is_gui_on) {
+            state.is_gui_on = true;
+            threads.push_back(thread(wait_key_press, this));
+        }
+    } else {
+        err("No active canvas.\n");
+    }
+}
 
+/** Histogram:
+ *  Displays the histogram of the selected ROI of the canvas.
+ */
+void ImgineContext::execute_histogram(vector<string> params)
+{
+
+    if (params.size() > 1) {
+        for (int i = 1; i < params.size(); i++) {
+            string canvas_name = params.at(i);
+            Canvas *target_canvas;
+            target_canvas = get_canvas_by_name(canvas_name);
+            if (target_canvas) {
+                Mat roi(*(target_canvas->current->mat),
+                        target_canvas->current->roi);
+                Mat hist_image = draw_histogram(&roi);
+
+                // FIXME: resizable window using CV_WINDOW_NORMAL
+                imshow(get_histogram_name(target_canvas->name), hist_image);
+
+            } else {
+                err("Canvas not found: %s\n", canvas_name.c_str());
+            }
+        }
+
+        if (!state.is_gui_on) {
+            state.is_gui_on = true;
+            threads.push_back(thread(wait_key_press, this));
+        }
+    } else if (active_canvas) {
+        Mat roi(*(active_canvas->current->mat),
+                active_canvas->current->roi);
+        Mat hist_image = draw_histogram(&roi);
+
+        // FIXME: resizable window using CV_WINDOW_NORMAL
+        imshow(get_histogram_name(active_canvas->name), hist_image);
+
+        if (!state.is_gui_on) {
+            state.is_gui_on = true;
+            threads.push_back(thread(wait_key_press, this));
+        }
     } else {
         err("No active canvas.\n");
     }
 }
 
 /** Inspect:
- *  Opens a HighGUI window displaying the image of the canvas.
- *  (Mouse interaction enabled; switch to it if not active)
+ *  Opens an interactive HighGUI window displaying the image of the canvas.
+ *  (Switches to it if not active.)
  */
-void ImgineContext::execute_inspect(vector<string> params)
+void ImgineContext::execute_inspect(vector<string> params,
+                                    bool has_histogram = false)
 {
-    if (params.size() >= 2)
+    // No multiple windows -- buggy!
+    destroyAllWindows();
+
+    if (params.size() == 2) {
         execute_switch_to(params); // switch to the canvas
+    } else if (params.size() > 2) {
+        warn("? :inspect CANVAS_NAME\n");
+        return;
+    }
 
     if (active_canvas) {
-        // No multiple windows
-        destroyAllWindows();
         // FIXME: resizable window using CV_WINDOW_NORMAL
         namedWindow(active_canvas->name, WINDOW_AUTOSIZE);
         imshow(active_canvas->name, *(active_canvas->current->mat));
 
-        setMouseCallback(active_canvas->name, onMouseInspection, this);
-        execute_properties(params);
-        cout << string(4, '\n') << flush;
-        waitKeyPress();
-        cout << EL(1) << endl; // remove color statusline
+        for (string &line : show_properties(active_canvas))
+            cout << line << endl;
 
-    } else {
-        err("No active canvas.\n");
-    }
-}
-
-/** Keyboard event handler.
- */
-void ImgineContext::waitKeyPress()
-{
-    bool is_looping = true;
-    do {
-        int code = waitKey(0);
-
-        if (code == 255 // window close -- make sure the thread halts
-            || code == 27 // ESC
-            )
-            is_looping = false;
-    } while (is_looping);
-
-    // No way to tell which HighGUI window is active, kill them all.
-    // Must call this explicitly, otherwise the window gets hanged.
-    destroyAllWindows();
-}
-
-/** Mouse callback handler for inspection.
- */
-void ImgineContext::onMouseInspection(int ev, int x, int y, int flags, void *context)
-{
-    ImgineContext *image_context = (ImgineContext *)context;
-    Mat *mat = image_context->active_canvas->current->mat;
-    Rect2d *roi = &image_context->active_canvas->current->roi;
-
-    // Bounded position.
-    x = min(mat->cols, max(0, x));
-    y = min(mat->rows, max(0, y));
-
-    switch (ev) {
-    case EVENT_MOUSEMOVE:
-    {
-        cout << CPL(4);
-        if (image_context->state.is_dragging) {
-            int topleft_x = min(x, image_context->state.dragging_start_x);
-            int topleft_y = min(y, image_context->state.dragging_start_y);
-            int w = abs(x - image_context->state.dragging_start_x) + 1;
-            int h = abs(y - image_context->state.dragging_start_y) + 1;
-
-            *roi = Rect2d(topleft_x, topleft_y, w, h);
-            cout << CPL(1) EL(1) << "  ROI:\t\t"
-                 << *roi << string(12, ' ') << endl;
-
-            Mat masked_mat = mat->clone();
-            rectangle(masked_mat, *roi, Scalar(0, 0, 255), 1);
-            imshow(image_context->active_canvas->name, masked_mat);
-        }
-
-        cout << "  Pixel:\t"
-             << "(" << x << ", " << y << ")" << string(6, ' ') << endl;
-
-        unsigned char r, g, b, a = 255;
-        if (mat->type() == CV_8UC1) {
-            Vec<uchar, 1> pixel = mat->at<uchar>(y, x);
-            b = g = r = pixel.val[0];
-
-            cout << "  Value (gray):\t"
-                 << pixel << string(12, ' ') << endl;
-
-        } else if (mat->type() == CV_8UC2) {
-            Vec2b pixel = mat->at<Vec2b>(y, x);
-            b = g = r = pixel.val[0];
-            a = pixel.val[1];
-
-            cout << "  Value (gray):\t"
-                 << pixel << string(12, ' ') << endl;
-
-        } else if (mat->type() == CV_8UC3) {
-            Vec3b pixel = mat->at<Vec3b>(y, x);
-            b = pixel.val[0];
-            g = pixel.val[1];
-            r = pixel.val[2];
-
-            cout << "  Value (BGR):\t"
-                 << pixel << string(12, ' ') << endl;
-
-        } else { // CV_8UC4
-            Vec4b pixel = mat->at<Vec4b>(y, x);
-            b = pixel.val[0];
-            g = pixel.val[1];
-            r = pixel.val[2];
-            a = pixel.val[3];
-
-            cout << "  Value (BGRA):\t"
-                 << pixel << string(12, ' ') << endl;
-
-        }
-        cout << "  RGB hex:\t" << rgb_to_hex(r, g, b) << endl;
-        cout << "  Opacity:\t" << alpha_to_opacity(a) << endl;
-
-        if (image_context->config.is_console_truecolor)
-            cout << sgr_background_rgb(r, g, b,
-                                       string(image_context->config.console_columns, ' '))
-                 << flush;
-    }
-    break;
-
-    case EVENT_LBUTTONDOWN:
-    {
-        if (!image_context->state.is_dragging) {
-            image_context->state.is_dragging = true;
-            image_context->state.dragging_start_x = x;
-            image_context->state.dragging_start_y = y;
-            *roi = Rect2d(0, 0,
-                          image_context->active_canvas->cols,
-                          image_context->active_canvas->rows);
-            cout << CPL(5) EL(1) << "  ROI:\t\t"
-                 << *roi << string(12, ' ') << string(5, '\n') << flush;
-            imshow(image_context->active_canvas->name, *mat);
-        }
-    }
-    break;
-
-    case EVENT_LBUTTONUP:
-    {
-        if (image_context->state.is_dragging) {
-            image_context->state.is_dragging = false;
-        }
-    }
-    break;
-
-    // TODO: EVENT_RBUTTONDOWN EVENT_MBUTTONDOWN
-    }
-}
-
-/** Statistics:
- */
-void ImgineContext::execute_statistics(vector<string> params)
-{
-    if (active_canvas) {
+        cout << "  Current ROI:\t" << active_canvas->current->roi << endl;
         Mat roi(*(active_canvas->current->mat), active_canvas->current->roi);
-        cout << "  ROI:\t\t" << active_canvas->current->roi << endl;
+        for (string &line : show_statistics(&roi))
+            cout << line << endl;
 
-        Scalar roi_mean, roi_stddev;
-        meanStdDev(roi, roi_mean, roi_stddev);
-        cout << "  (BGRA)" << endl;
-        cout << "    Mean:\t" << roi_mean << endl;
-        cout << "    Std dev:\t" << roi_stddev << endl;
+        vector<string> s_pixel = show_pixel(active_canvas->current->mat,
+                                            0, 0);
+        for (int i = 0; i < s_pixel.size() - 1; i++)
+            cout << s_pixel[i] << endl;
+        cout << s_pixel.back() << flush; // color-line
+
+        setMouseCallback(active_canvas->name, on_mouse_event, this);
+
+        // Draw histogram if required.
+        if (has_histogram) {
+            state.is_histogram_enabled = true;
+
+            Mat hist_image = draw_histogram(&roi);
+            imshow(get_histogram_name(active_canvas->name), hist_image);
+        } else {
+            state.is_histogram_enabled = false;
+        }
+
+        state.is_gui_on = true;
+        wait_key_press(this); // blocking
+
+        cout << el(1) << endl; // remove color-line
 
     } else {
         err("No active canvas.\n");
@@ -752,12 +1098,12 @@ void ImgineContext::execute_statistics(vector<string> params)
  */
 void ImgineContext::execute_procedure(vector<string> params)
 {
-    if (params.size() >= 2) {
+    if (params.size() > 1) {
         string scmd = params.at(1);
         Mat result;
 
         if (scmd == "grayscale") {
-            if (params.size() >= 3) {
+            if (params.size() > 2) {
                 Canvas *src_canvas = get_canvas_by_name(params.at(2));
 
                 if (src_canvas) {
@@ -772,10 +1118,10 @@ void ImgineContext::execute_procedure(vector<string> params)
             }
 
         } else if (scmd == "equalize_hist") {
-            if (params.size() >= 3) {
+            if (params.size() > 2) {
                 Canvas *src_canvas = get_canvas_by_name(params.at(2));
                 Colorspace space = CIELAB;
-                if (params.size() >= 4)
+                if (params.size() > 3)
                     try {
                         space = COLORSPACE_STRINGS.at(params.at(3));
                     } catch (const std::out_of_range &e) {
@@ -795,11 +1141,11 @@ void ImgineContext::execute_procedure(vector<string> params)
             }
 
         } else if (scmd == "color_transfer") {
-            if (params.size() >= 4) {
+            if (params.size() > 3) {
                 Canvas *src_canvas = get_canvas_by_name(params.at(2));
                 Canvas *ref_canvas = get_canvas_by_name(params.at(3));
                 Colorspace space = Ruderman_lab;
-                if (params.size() >= 5)
+                if (params.size() > 4)
                     try {
                         space = COLORSPACE_STRINGS.at(params.at(4));
                     } catch (const std::out_of_range &e) {
@@ -827,7 +1173,6 @@ void ImgineContext::execute_procedure(vector<string> params)
         // put result into a new canvas
         new_canvas();
         *active_canvas->current->mat = result;
-        //active_canvas->current->mat = new Mat(dst_mat);
         if (active_canvas->current->mat->data) {
             int rows = active_canvas->current->mat->rows;
             int cols = active_canvas->current->mat->cols;

@@ -74,6 +74,8 @@ public:
         int verbosity = 0;
     } config;
     struct {
+        bool is_gui_on = false;
+        bool is_histogram_enabled = false;
         bool is_dragging = false;
         int dragging_start_x = 0;
         int dragging_start_y = 0;
@@ -101,24 +103,32 @@ private:
     int canvas_counter = 0;
     list<thread> threads = {};
 
-    // misc handler functions
-    static void waitKeyPress();
-    static void onMouseInspection(int, int, int, int, void *);
+    vector<string> show_properties(Canvas *);
+    vector<string> show_statistics(Mat *);
+    vector<string> show_pixel(Mat *, int, int);
+    Mat draw_histogram(Mat *);
 
-    // command executor functions
+    static void wait_key_press(ImgineContext *);
+    static void on_mouse_event(int, int, int, int, void *);
+    static string get_histogram_name(string);
+
     void execute_status(vector<string>);
     void execute_list(vector<string>);
     void execute_switch_to(vector<string>);
     void execute_new(vector<string>);
     void execute_delete(vector<string>);
     void execute_rename(vector<string>);
-    void execute_properties(vector<string>);
-    void execute_dump(vector<string>);
     void execute_import(vector<string>);
     void execute_export(vector<string>);
-    void execute_show(vector<string>);
-    void execute_inspect(vector<string>);
+
+    void execute_properties(vector<string>);
+    void execute_roi(vector<string>);
+    void execute_dump(vector<string>);
+    void execute_dump_roi(vector<string>);
     void execute_statistics(vector<string>);
+    void execute_show(vector<string>);
+    void execute_histogram(vector<string>);
+    void execute_inspect(vector<string>, bool);
     void execute_procedure(vector<string>);
 
 };
