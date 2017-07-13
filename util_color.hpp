@@ -31,6 +31,7 @@ COLORSPACE_STRINGS = {
 
 string rgb_to_hex(unsigned char, unsigned char, unsigned char);
 float alpha_to_opacity(unsigned char);
+string alpha_to_opacity_percentage(unsigned char);
 
 Mat convert_BGR_to_CIEXYZ(Mat, bool);
 Mat convert_CIEXYZ_to_LMS(Mat, bool);

@@ -8,6 +8,8 @@
 
 using namespace cv;
 
+using std::to_string;
+
 namespace util_color {
 
 /** Convert RGB values to a hexadecimal string ('#' prefixed).
@@ -27,6 +29,13 @@ string rgb_to_hex(unsigned char r, unsigned char g, unsigned char b)
 float alpha_to_opacity(unsigned char a)
 {
     return int(a / 255. * 100) / 100.;
+}
+
+/** Convert alpha value to opacity percentage (as a string).
+ */
+string alpha_to_opacity_percentage(unsigned char a)
+{
+    return to_string(int(a / 255. * 100)) + "%";
 }
 
 /** Convert a 3-channel matrix from BGR space to CIE XYZ space.
