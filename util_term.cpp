@@ -83,6 +83,29 @@ string sgr_background_rgb(unsigned char r, unsigned char g, unsigned char b, str
         s + SGR_RESET;
 }
 
+/** ANSI control code: Cursor Next Line.
+ */
+string cnl(int n)
+{
+    return "\33[" + to_string(n) + "E";
+}
+
+/** ANSI control code: Cursor Previous Line.
+ */
+string cpl(int n)
+{
+    return "\33[" + to_string(n) + "F";
+}
+
+/** ANSI control code: Erase in Line.
+ */
+string el(int n)
+{
+    return "\33[" + to_string(n) + "K";
+}
+
+
+
 namespace log {
 
 int vfecho(const char *fmt, va_list args)

@@ -69,16 +69,6 @@
 #define SGR_BACKGROUND_LIGHT_CYAN    SGR("106")
 #define SGR_BACKGROUND_LIGHT_WHITE   SGR("107")
 
-/** Cursor Next Line.
- */
-#define CNL(n)                       "\33[" BOOST_PP_STRINGIZE(n) "E"
-/** Cursor Previous Line.
- */
-#define CPL(n)                       "\33[" BOOST_PP_STRINGIZE(n) "F"
-/** Erase in Line.
- */
-#define EL(n)                        "\33[" BOOST_PP_STRINGIZE(n) "K"
-
 using std::string;
 
 namespace util_term {
@@ -89,6 +79,10 @@ int get_width();
 
 string sgr_rgb(unsigned char, unsigned char, unsigned char, string);
 string sgr_background_rgb(unsigned char, unsigned char, unsigned char, string);
+
+string cnl(int);
+string cpl(int);
+string el(int);
 
 namespace log {
 
